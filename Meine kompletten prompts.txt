@@ -1,0 +1,91 @@
+Generiere mir aus den ganzen Beispielen ein Markdown-File und 
+im nächsten Schritt möchte ich, dass du mir eine kleine App machst, 
+also wie eine Art Web-Interface, in dem ich die einzelnen Komponenten 
+wie eine Art kleinen Reiter oder vielleicht irgendwas, was dir auch einfällt, 
+anklicken kann und dann zu jedem irgendwie ein bisschen was schreiben 
+kann und du kannst vielleicht machen mit deinen Vorschlägen und 
+\schreibst mir einen kompletten Tag mit den ganzen Sachen. 
+Das Ganze soll einzeln verfügbar sein, also für jedes einzelne Instrument 
+und dann ganz wichtig auch noch für die Songstruktur.
+
+
+
+mach gern mitr v2 weiter aber ich haette jetzt auch schon ein paar anmerkungen- 
+ich haate gern oben einen preview bereich der die songstrukture bzw den track aufbau visualieseirt 
+also fuer jede kompnent ( Kick / perc/ hats/claps/bss/subbass/Synth / Vocals/ chords/pads/FX / Transistions 
+eine kleine farbige linie die dann alle unttereinader diie struktureanzeigen/ dann ein raster das in 
+4bar abschitten die lange des tracks widerspiegelt - 
+also anhlich widf ein Suquenzer somit tranistion soll dann farblich 
+ubergange bz vermisschungen zweier elemete geben - 
+also wenn zb bei einem break/drop fx bzw transistions von htas/percind vocals waren dan 
+war ein balken der in allen alllen drei farben leicht gefarnt werde- 
+somit kann der prompt dann auch eindeutig die songstruktur 
+bz den aufbeu und die kompneten der einzeen eelmete mit fomulieren 
+und macht es fur mich visuell leicht und ubersichetlich erkennbar .
+es ware auch ein hilfreich wenn es eine art interactive modues geben wurde bei dem du mir anhand von fragen 
+die einzleenn bereiche was den songaufbau udn intrument/sounds betrifft 
+also dasdu somit durch fragen die einzelne breichen abdeckst und somit den komplettten song mit allen komponennten erfragst - 
+bei dem bereich waren dann auch schn ermpfehluge oder gut moglichkeiten als art auswahl oder liste zure aswahl bereit - 
+also das du zb wenn es um bass get mir hier anfagst zu grafden welche art /rotmus/ tonart und aufabu usw 
+bis wir ein komplete strukture und track kompisiton abgedeckt haben
+
+
+vielleicht konne wir auch noch in der topbar (oberste spur) eine art song structure overview einabuen - 
+also sowas wie intro buildup break drop builsupd 2 full elemts - 2nd break,.... outro
+
+v3 auf jeden fall zu den ba5s also ich glaube die top line auch direkt uber den 4 bar grid
+aber dan sehr gut die ide mit dem klicken auif eine song struktuire elmet das dan auf die einzelen kopmpnetne eingeht 
+auch ware gut zu shen anahnd von rtansparenz oder eben vole farbe wie komplex oder dominatn ein instrumente spur gerade ist - 
+also transparterer calps spuir die sich von durchsicht zu kompeltt deckend entwicketlw urde 
+dann den ich aufbaiuenbe oder dominate bereich darstellen - 
+leichte hights die im clicky shwahow anfangen waren dursichtige als nach einem breka wennsi domninat und klar wir mit rei kommen
+
+
+ich mag den punkt waas du bei 🧠 1. REAL “ENERGY ENGINE” ansprichst - 
+hier ist naturlich die visualierung und nachtraglich eitbarkeit bzw ferfeinerung speielklker breiche wichtig sowie auch eine art 
+gefuhrte bzw gemeinsame erabeitung der struktyure - 
+als das wir eine art frage nd antwort basierte ertlelung machen wo du anfanst mit einem bereich dann vorscvhlage machst 
+und die ichauswhalne kan und du daruafhin weiter dynisch und mmit bezug auf den schon vorehine elente ertstellnt 
+bericvhen die einzelen bereichge nacheindfe abfragwst umdsso dan eine komplette strktur zu habnen -
+das ganz soll eineiotes sehr granular und detailiert mogliovch sein aber auch dynisch und anahad von presets zeitlich vereinfacht sein 
+also das du mit eier aer tgrudf stuktir und aufabiu als tempet vorgibts und wir dan die einzene beriefh ebesprchen
+
+\
+V4 hoetrt sich sper an und dann lass uns mal das ganze teste und wir werden den ablauf einaml komplett duchgehen 
+ bestimmt dann nch au f ein paar keineigkeite stozen die verandert der angepaast werden mussen - 
+ aber mache jeztz erstaml ein komplete vrson die einsatzfahig und testbarist und wir dann wirklich mal den amzing geroove 
+ strkt ai machine testen konne -
+ 
+ kurze fragewo ist den das Raster mit den einzelnen elemtent hin verschwuden ? 
+ zum songstarrt ware ein grobe start oder chratersitics seite ganz guit 
+ in der zb so sachen wie style, geschwindigeit, tonart , etc gsetyzt werden um das als elemtare basics feszulegen 
+ und von dor aus dan als nachstes mit der generlen trackauf bau ubersicht beginne um dann auf die wrklichen einzlene komeoneten eingen
+ und den abaumit details zu beschreiben
+
+ware gut wenn de die einzelken eben als art kartei katen anlehgst also 
+erste kartei karte song caractersitics / 
+zweite ware song struture mit der Song Structure Timeline dazuu dan wieder die blocks 
+wie intro buildup break drop builsupd 2 full elemts - 2nd break,.... outro 
+auf der kartikarte sollen dann auch der Intelligent Song Builder wizzard laufen 
+der schon visuell die moglickeit gibt die grobe songstukture festzulgen also 
+zb bei intro sollen zb auswahlbars sen basic kicks and simple hihtas build u bei adding elemts and dann bei bar 4 bass and claps start
+ to build the percusin loop with elemts of teh bas ... fxbreak and an d so on 
+ ds du mr aber eben wie in uisnes ersten Deep Techno Prompt Library die einzlnen opnenten entwer aus eine iste anklicke kast
+ oder klen bausteine die ich aus einem pool in ein fenster ziehn kan und 
+dritte karteikart sind dann die einzlelnen elemente die dann zum einen den bar sequnzer ansicht 
+wider oben haben und dann beim klcik auf eins der elemt eim iunter bereich wireum die auswahl moglich sien soll 
+was hiere spielt eventeull 2 oder 3 fenster links eins fuer intreument art 
+zb kick wo im rechten fenster dazu dann ale mogliche kick zur auswahl sid und ich die dann nach links in s feld ziehen kann 
+danndas zweite fenter den style bzw klangeigenschaften dazu dan auch ein rechteds fenste mit auswahlmoiglichkeite 
+wie dubby , low puinshy ... 
+dann nim dritten fenrste soll groove bzw meldoy eigenchten zu auswahlk stehen also bei der kic 4 beats minimal rlling ...
+bzw bei synth konnten hier dann tonhoe melodiea rt udnusw auch mit asaugewhlt werden kone 
+bzw bei perc fx sachen wie ofbeat, treibend, gost 
+also all die tags dei wier so im Deep Techno Prompt Library habe solen sinvoll anwen bar sein 
+um das ganz e auch nch ai gesteurte z mche konnen eigenschfen die jeweils aus dem linken feld ausgewhlt weren konen 
+die abe rdeiner meinung nach aufgrund von songeifschafgten etc besondes empfehleet sein heller dargeste werden 
+also elemter de reigenschagt die villeicht icht so pasedn waren d 
+die krteikrten sollen alle minimal und styulisch ubersichltic gestalte werfen i eiem grauen tranparten look 
+und und eben duch drag and drop editbar. 
+im uneren bereich soll dann einmal eine art pormpot vorschau die durch die gewhlten emete dann erstel weren mochlich sei 
+bzw noch eine zeile um wo ich per txt eingbae ncoh weiteren input eingebn kann

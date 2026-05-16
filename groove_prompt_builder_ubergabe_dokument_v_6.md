@@ -1,0 +1,336 @@
+# 🎛️ Groove Prompt Builder – Übergabe-Dokument (V6)
+
+Dieses Dokument dient als vollständige Projekt-Übergabe für eine andere Entwicklungsumgebung (Codex / ChatGPT / Entwicklerteam). Es enthält Ziel, Architektur, aktuellen Code, Historie und nächste Schritte.
+
+---
+
+# 1. Projektziel
+
+## 🧠 Was soll die App tun?
+Die Anwendung ist ein **AI-gestütztes Music Composition & Prompt Design System** für:
+- Minimal Techno
+- Deep Tech House
+- Dub Techno
+- Hypnotic Club Music
+
+Sie kombiniert:
+- visuelle Song-Struktur
+- instrumentbasierte Sound-Pools
+- Prompt-Generierung für AI Music Tools (z. B. Suno / Lyria)
+
+---
+
+## 🎯 Zielgruppe
+- Musikproduzenten (Techno / House)
+- AI Music Creators
+- Sound Designer
+- DJs / Live-Set Builder
+- Experimentelle AI Music Nutzer
+
+---
+
+## ⭐ Wichtigste Features
+
+### 🧱 1. Struktur Timeline (32 Bars)
+- Intro / Build / Break / Drop / Outro
+- visuelle Top-Bar Darstellung
+
+### 🎛️ 2. Instrument Card System
+- Kick, Bass, Hats, Perc, Synth, Vocals, FX etc.
+- Auswahl aus Sound-Pools
+
+### 🧬 3. AI Prompt Generator
+- generiert strukturierte Prompts
+- enthält:
+  - Style
+  - BPM
+  - Key
+  - Instrument choices
+  - Struktur
+
+### 🖱️ 4. Interaktive UI
+- klickbare Sound-Pools
+- visuelle Strukturleiste
+- Start → Builder Flow
+
+---
+
+## 🚧 Was ist bereits umgesetzt?
+- Struktur Timeline (32 Bars)
+- Instrument Pools
+- Start Screen (Meta Presets)
+- Basic Selection System
+- Prompt Generator
+- React Single File App
+
+---
+
+## ❌ Was fehlt noch?
+
+### 🔥 High Priority
+- Drag & Drop System (Cards → Timeline)
+- echte Song-Struktur Cards (Intro/Drop als Module)
+- Energy Heatmap System (intelligent intensity mapping)
+
+### 🧠 Medium Priority
+- Wizard / Guided Song Builder (AI Questions Flow)
+- adaptive recommendations based on selections
+- per-section editing mode
+
+### 🎧 Future Vision
+- Playhead Animation
+- Audio preview engine
+- generative variations (auto remix modes)
+
+---
+
+# 2. Aktueller technischer Stand
+
+## ⚙️ Tech Stack
+- React (Functional Components)
+- useState / useMemo Hooks
+- Inline Styling (no Tailwind / no external UI lib)
+- Single File Architecture
+
+---
+
+## 📁 Projektstruktur (implizit)
+
+Aktuell existiert nur eine Hauptdatei:
+
+```
+GroovePromptBuilderV6.jsx
+```
+
+---
+
+## 📦 Wichtige Komponenten
+
+- `GroovePromptBuilderV6` (Main App)
+- `STRUCTURE` (Song Sections)
+- `POOLS` (Instrument Sound Library)
+- `META_PRESETS` (Start Configuration)
+- `recommend()` (simple heuristic scoring)
+
+---
+
+## 🚀 Starten der App
+
+Da es eine Single File React App ist:
+
+```bash
+npm install
+npm run dev
+```
+
+oder in Vite:
+
+```bash
+vite
+```
+
+Dann Datei als App-Komponente rendern.
+
+---
+
+## 🔌 Abhängigkeiten
+- React
+- keine externen APIs
+- keine Keys / Env Variablen
+
+---
+
+# 3. Aktueller Code
+
+```jsx
+// GroovePromptBuilderV6.jsx
+import React, { useMemo, useState } from "react";
+
+const DEFAULT_BARS = 32;
+
+const STRUCTURE = [
+  { name: "INTRO", start: 0, end: 7, color: "#1f1f2e" },
+  { name: "BUILD 1", start: 8, end: 15, color: "#3a86ff" },
+  { name: "BREAK 1", start: 16, end: 19, color: "#8338ec" },
+  { name: "DROP 1", start: 20, end: 23, color: "#ff006e" },
+  { name: "BUILD 2", start: 24, end: 27, color: "#fb5607" },
+  { name: "BREAK 2", start: 28, end: 29, color: "#ffbe0b" },
+  { name: "OUTRO", start: 30, end: 31, color: "#111111" },
+];
+
+const META_PRESETS = [
+  { label: "Deep Hypnotic", style: "minimal techno", bpm: 124, key: "A minor", energy: "deep" },
+  { label: "Dub Tech", style: "dub techno", bpm: 120, key: "C minor", energy: "warm" },
+  { label: "Driving Club", style: "tech house", bpm: 126, key: "F minor", energy: "driving" },
+];
+
+const POOLS = {
+  kick: ["rounded kick", "punchy kick", "dry analog kick", "deep club kick"],
+  bass: ["rolling bassline", "syncopated bass", "sub-heavy bass", "dubby bass groove"],
+  hats: ["shuffled hats", "offbeat hats", "tight closed hats", "ghost hats"],
+  perc: ["rim clicks", "wood percussion", "shaker groove", "minimal percussion"],
+  synth: ["muted synth motif", "liquid synth line", "detuned pulse", "minimal hook"],
+  chords: ["dub chord stabs", "filtered chords", "reverb chords", "atmospheric harmony"],
+  pads: ["wide pads", "dark atmosphere", "soft drone", "ambient wash"],
+  vocals: ["chopped vocals", "vocal stutters", "vocoder textures", "breath chops"],
+  fx: ["filter sweep", "reverb swell", "delay throws", "noise riser"],
+};
+
+function recommend(meta, item) {
+  if (meta.energy === "deep" && item.includes("sub")) return 1;
+  if (meta.style.includes("dub") && item.includes("dubby")) return 1;
+  return 0.4;
+}
+
+function getSegment(i) {
+  return STRUCTURE.find((s) => i >= s.start && i <= s.end);
+}
+
+export default function GroovePromptBuilderV6() {
+  const [phase, setPhase] = useState("start");
+  const [activeInstrument, setActiveInstrument] = useState("kick");
+  const [selected, setSelected] = useState({});
+
+  const [meta, setMeta] = useState({
+    style: "minimal techno",
+    bpm: 124,
+    key: "A minor",
+    energy: "deep",
+  });
+
+  const toggle = (type, value) => {
+    setSelected((p) => ({ ...p, [type]: value }));
+  };
+
+  const prompt = useMemo(() => {
+    let out = "MINIMAL TECH HOUSE / DEEP TECHNO V6\n\n";
+    out += `STYLE: ${meta.style} | BPM: ${meta.bpm} | KEY: ${meta.key} | ENERGY: ${meta.energy}\n\n`;
+
+    out += "[STRUCTURE]\n";
+    STRUCTURE.forEach((s) => (out += `${s.name}: ${s.start}-${s.end}\n`));
+
+    out += "\n[COMPONENTS]\n";
+    Object.entries(selected).forEach(([k, v]) => (out += `${k}: ${v}\n`));
+
+    return out;
+  }, [meta, selected]);
+
+  if (phase === "start") {
+    return (
+      <div style={{ padding: 20, background: "#0b0b10", color: "white", height: "100vh" }}>
+        <h2>Song Setup</h2>
+
+        {META_PRESETS.map((p) => (
+          <button key={p.label} onClick={() => setMeta(p)}>
+            {p.label}
+          </button>
+        ))}
+
+        <button onClick={() => setPhase("builder")}>Start</button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", height: "100vh", background: "#0b0b10", color: "white" }}>
+
+      <div style={{ width: 280 }}>
+        {Object.keys(POOLS).map((t) => (
+          <div key={t} onClick={() => setActiveInstrument(t)}>{t}</div>
+        ))}
+      </div>
+
+      <div style={{ flex: 1 }}>
+        {POOLS[activeInstrument].map((item) => (
+          <div key={item} onClick={() => toggle(activeInstrument, item)}>{item}</div>
+        ))}
+      </div>
+
+      <pre>{prompt}</pre>
+    </div>
+  );
+}
+```
+
+---
+
+# 4. Frühere Versionen / verworfene Komponenten
+
+## 🧪 V1–V3 (Konzeptphase)
+- reiner Prompt Builder
+- keine Strukturvisualisierung
+- keine Timeline
+
+## 🧪 V4
+- Energy Engine eingeführt
+- Wizard eingeführt
+- erste visuelle Struktur
+
+## 🧪 V5
+- Card System Ansatz
+- Start → Builder Flow
+- frühe Meta-Systeme
+
+## 🧪 verworfen
+- komplexe Drag & Drop Ideen (noch nicht stabil umgesetzt)
+- Playhead Animation (noch nicht implementiert)
+
+---
+
+# 5. Entscheidungen und Verlauf
+
+## 🧠 Wichtige Architekturentscheidungen
+- Single File React App für schnelle Iteration
+- strukturierte Sound Pools statt freies Textsystem
+- Song = Kombination aus:
+  - Meta
+  - Structure
+  - Instrument Selection
+
+## 🔁 Alternativen
+- klassische DAW UI → verworfen (zu schwer)
+- reines Prompt Tool → verworfen (zu wenig Kontrolle)
+
+## ⚠️ Probleme
+- UI Inkonsistenz zwischen Versionen
+- fehlende klare Phasenstruktur in frühen Versionen
+
+## ✅ Lösungen
+- Start → Builder Flow eingeführt
+- Struktur Timeline standardisiert
+
+---
+
+# 6. Aktueller Zustand & nächste Schritte
+
+## ✅ Funktioniert
+- Start Screen
+- Instrument Auswahl
+- Sound Pool Auswahl
+- Prompt Generator
+- Struktur Definition
+
+## ❌ Funktioniert nicht / fehlt
+- Drag & Drop Cards
+- echte Card UI (nur minimal visualisiert aktuell)
+- Energy Heatmap (nur logisch, nicht visuell)
+- Wizard Flow nicht erweitert
+
+## 🚀 Nächste Schritte
+- V7: Card-based UI System
+- Drag & Drop Song Builder
+- AI Guided Flow (adaptive questions)
+- Structure Cards (Intro/Drop als echte Module)
+
+## ❓ Offene Fragen
+- Soll echte Audio Simulation integriert werden?
+- Soll AI extern (API) angebunden werden?
+
+---
+
+# 📦 Übergabe-Ende
+
+Dieses System ist ein **early-stage generative music composition environment** mit klarer Entwicklung Richtung:
+
+> 🎛️ AI-driven DAW / Prompt-based Music Studio
+
