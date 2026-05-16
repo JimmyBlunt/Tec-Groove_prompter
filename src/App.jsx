@@ -15,6 +15,8 @@ import {
   INSTRUMENTS,
   JOURNEY_BLUEPRINTS,
   CHARACTERISTIC_OPTIONS,
+  DEFAULT_EXCLUDES,
+  EXCLUDE_GROUPS,
   GUIDED_BUILDER_QUESTIONS,
   PROMPT_LANGUAGES,
   PROMPT_DENSITIES,
@@ -44,6 +46,17 @@ const STORAGE_KEY = "groovePromptBuilder.savedPrompts";
 const defaultGuidedAnswers = Object.fromEntries(
   GUIDED_BUILDER_QUESTIONS.map((question) => [question.id, question.options[0]?.id])
 );
+const EXCLUDE_GROUP_LABELS = {
+  commercialMainstream: "Commercial / Mainstream",
+  vocals: "Vocals",
+  edmFestival: "EDM / Festival",
+  synthsPads: "Synths / Pads",
+  drumsGroove: "Drums / Groove",
+  bassLowend: "Bass / Low-End",
+  fxTransitions: "FX / Transitions",
+  mixAesthetic: "Mix Aesthetic",
+  structureArrangement: "Structure / Arrangement",
+};
 
 function loadSavedSnapshots() {
   try {
@@ -207,6 +220,46 @@ function EffectTable({ tags, selectedTags, recommendations, onAdd }) {
   );
 }
 
+function ExcludeBuilder({ selectedExcludes, onToggle, onReset, onClear }) {
+  return (
+    <div className="exclude-builder">
+      <div className="exclude-builder-head">
+        <div>
+          <strong>Negative Prompt Builder</strong>
+          <span>Click to toggle unwanted commercial, cheesy, generic or wrong-style elements.</span>
+        </div>
+        <div>
+          <button type="button" onClick={onReset}>Defaults</button>
+          <button type="button" onClick={onClear}>Clear</button>
+        </div>
+      </div>
+      {Object.entries(EXCLUDE_GROUPS).map(([groupId, tags]) => (
+        <section className="exclude-group" key={groupId}>
+          <h4>{EXCLUDE_GROUP_LABELS[groupId] || groupId.replace(/([A-Z])/g, " $1")}</h4>
+          <div className="exclude-chip-grid">
+            {tags.map((tag) => {
+              const label = tagLabel(tag);
+              const active = selectedExcludes.includes(label);
+              return (
+                <button
+                  className={active ? "is-active" : ""}
+                  key={label}
+                  type="button"
+                  onClick={() => onToggle(label)}
+                  title={tagDescription(tag)}
+                >
+                  <strong>{label}</strong>
+                  <span>{tagDescription(tag)}</span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
 function AssignmentSection({ group, tags, onFocus, onRemove }) {
   return (
     <section className="assignment-section" onClick={onFocus}>
@@ -241,6 +294,7 @@ function App() {
   const [rightPanelTab, setRightPanelTab] = useState("prompt");
   const [selectedCells, setSelectedCells] = useState([]);
   const selectionAnchorRef = useRef(null);
+  const [selectedExcludes, setSelectedExcludes] = useState(() => DEFAULT_EXCLUDES);
   const [blockOverrides, setBlockOverrides] = useState({});
   const [revisionCounter, setRevisionCounter] = useState(1);
   const [savedSnapshots, setSavedSnapshots] = useState(loadSavedSnapshots);
@@ -289,8 +343,8 @@ function App() {
   }, [arrangement, blockCount, trackRows]);
 
   const prompts = useMemo(
-    () => compilePromptBundle({ meta, structure, selections, arrangement, notes, trackRows, blockOverrides, promptDensity }),
-    [meta, structure, selections, arrangement, notes, trackRows, blockOverrides, promptDensity]
+    () => compilePromptBundle({ meta, structure, selections, arrangement, notes, trackRows, blockOverrides, promptDensity, selectedExcludes }),
+    [meta, structure, selections, arrangement, notes, trackRows, blockOverrides, promptDensity, selectedExcludes]
   );
   const styleCharCount = prompts.style.length;
 
@@ -406,6 +460,7 @@ function App() {
     trackRows,
     notes,
     blockOverrides,
+    selectedExcludes,
   });
 
   const saveCurrentSnapshot = () => {
@@ -428,6 +483,7 @@ function App() {
       setSelections(snapshot.selections);
       setNotes(snapshot.notes || "");
       setBlockOverrides(snapshot.blockOverrides || {});
+      setSelectedExcludes(snapshot.selectedExcludes || DEFAULT_EXCLUDES);
     }
     if (mode === "elements") {
       setTrackRows(snapshot.trackRows || createDefaultTrackRows());
@@ -679,6 +735,12 @@ function App() {
     await navigator.clipboard.writeText(value);
     setCopied(panel);
     window.setTimeout(() => setCopied(""), 1400);
+  };
+
+  const toggleExclude = (label) => {
+    setSelectedExcludes((previous) =>
+      previous.includes(label) ? previous.filter((item) => item !== label) : [...previous, label]
+    );
   };
 
   const optimizePromptDensity = () => {
@@ -1218,7 +1280,19 @@ function App() {
                         </button>
                       </div>
                     </div>
-                    {openPromptPanels[panel.id] && <pre>{panel.value}</pre>}
+                    {openPromptPanels[panel.id] && (
+                      <>
+                        <pre>{panel.value}</pre>
+                        {panel.id === "exclude" && (
+                          <ExcludeBuilder
+                            selectedExcludes={selectedExcludes}
+                            onToggle={toggleExclude}
+                            onReset={() => setSelectedExcludes(DEFAULT_EXCLUDES)}
+                            onClear={() => setSelectedExcludes([])}
+                          />
+                        )}
+                      </>
+                    )}
                   </section>
                 ))}
                 <label className="global-notes">

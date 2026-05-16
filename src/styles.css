@@ -947,6 +947,104 @@ pre {
   background: rgba(0, 0, 0, 0.16);
 }
 
+.exclude-builder {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.018);
+  padding: 12px;
+}
+
+.exclude-builder-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.exclude-builder-head strong,
+.exclude-builder-head span {
+  display: block;
+}
+
+.exclude-builder-head strong {
+  color: var(--text);
+  font-size: 12px;
+}
+
+.exclude-builder-head span {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.exclude-builder-head > div:last-child {
+  display: flex;
+  gap: 7px;
+}
+
+.exclude-builder-head button {
+  min-height: 28px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--muted);
+  padding: 0 9px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.exclude-group {
+  margin-top: 12px;
+}
+
+.exclude-group h4 {
+  margin: 0 0 8px;
+  color: #a9c8ff;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.exclude-chip-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.exclude-chip-grid button {
+  min-height: 58px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--text);
+  cursor: pointer;
+  padding: 8px;
+  text-align: left;
+}
+
+.exclude-chip-grid button:hover,
+.exclude-chip-grid button.is-active {
+  border-color: rgba(255, 112, 112, 0.62);
+  background: rgba(255, 112, 112, 0.11);
+}
+
+.exclude-chip-grid strong,
+.exclude-chip-grid span {
+  display: block;
+}
+
+.exclude-chip-grid strong {
+  margin-bottom: 4px;
+  font-size: 11px;
+}
+
+.exclude-chip-grid span {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
 .effect-browser {
   padding: 12px;
 }

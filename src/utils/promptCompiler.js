@@ -244,9 +244,10 @@ export function compileSunoLyricsPrompt({ meta, structure, selections, arrangeme
   return lines.join("\n").trim();
 }
 
-export function compileSunoExcludePrompt({ meta }) {
+export function compileSunoExcludePrompt({ meta, selectedExcludes }) {
   const vocalMode = vocalModeFor(meta);
-  return unique([...DEFAULT_EXCLUDES, ...vocalMode.excludeCue.split(",").map((item) => item.trim())]).join(", ");
+  const baseExcludes = Array.isArray(selectedExcludes) ? selectedExcludes : DEFAULT_EXCLUDES;
+  return unique([...baseExcludes, ...vocalMode.excludeCue.split(",").map((item) => item.trim())]).join(", ");
 }
 
 export function compileBlueprintPrompt({ meta, structure, selections, arrangement, notes, trackRows, blockOverrides }) {
