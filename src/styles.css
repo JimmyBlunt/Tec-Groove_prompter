@@ -796,6 +796,232 @@ textarea:focus {
   font-size: 13px;
 }
 
+.analyzer-content {
+  gap: 14px;
+}
+
+.analysis-source-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.analysis-card,
+.waveform-panel,
+.analysis-controls,
+.analysis-results,
+.saved-analysis {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.025);
+  padding: 12px;
+}
+
+.analysis-card h3,
+.analysis-controls h3,
+.analysis-results h3,
+.saved-analysis h3 {
+  margin: 0 0 10px;
+  color: #a9c8ff;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.file-drop {
+  display: grid;
+  gap: 5px;
+  min-height: 82px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+  background: rgba(110, 198, 255, 0.035);
+  cursor: pointer;
+  padding: 14px;
+}
+
+.file-drop input {
+  display: none;
+}
+
+.file-drop strong,
+.file-drop span {
+  display: block;
+}
+
+.file-drop span,
+.analysis-card p,
+.waveform-toolbar span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.youtube-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.youtube-row input {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--text);
+  padding: 0 10px;
+}
+
+.youtube-row button,
+.analysis-actions button,
+.analysis-prompt-card button,
+.saved-analysis-item button {
+  min-height: 32px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.analysis-status {
+  border: 1px solid rgba(198, 245, 110, 0.25);
+  border-radius: var(--radius);
+  background: rgba(198, 245, 110, 0.06);
+  color: #dfffb0;
+  padding: 10px 12px;
+  font-size: 12px;
+}
+
+.waveform-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.waveform-toolbar strong,
+.waveform-toolbar span {
+  display: block;
+}
+
+.waveform-toolbar audio {
+  width: 100%;
+}
+
+.waveform-canvas {
+  display: block;
+  width: 100%;
+  height: 190px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  cursor: crosshair;
+}
+
+.analysis-controls {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.analysis-mode-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.analysis-mode-grid button {
+  min-height: 32px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.analysis-mode-grid button.is-active {
+  border-color: rgba(198, 245, 110, 0.56);
+  background: rgba(198, 245, 110, 0.12);
+  color: var(--text);
+}
+
+.analysis-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.analysis-feature-grid span {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(0, 0, 0, 0.16);
+  color: var(--muted);
+  padding: 9px;
+  font-size: 11px;
+}
+
+.analysis-feature-grid strong {
+  display: block;
+  margin-top: 3px;
+  color: var(--text);
+  font-size: 12px;
+}
+
+.analysis-prompt-list,
+.saved-analysis {
+  display: grid;
+  gap: 10px;
+}
+
+.analysis-prompt-card,
+.saved-analysis-group,
+.saved-analysis-item {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(0, 0, 0, 0.14);
+  padding: 10px;
+}
+
+.analysis-prompt-card h4,
+.saved-analysis-group h4 {
+  margin: 0 0 7px;
+  color: var(--accent);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.analysis-prompt-card p,
+.saved-analysis-item p {
+  margin: 0 0 9px;
+  color: #d9e2ec;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.analysis-prompt-card div,
+.analysis-actions,
+.saved-analysis-item div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.analysis-actions {
+  margin-top: 12px;
+}
+
+.saved-analysis-item + .saved-analysis-item {
+  margin-top: 8px;
+}
+
 .prompt-panel {
   display: flex;
   flex-direction: column;

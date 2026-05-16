@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   AudioLines,
@@ -43,9 +43,17 @@ import { compilePromptBundle } from "./utils/promptCompiler.js";
 
 const defaultPreset = TRACK_PRESETS[0];
 const STORAGE_KEY = "groovePromptBuilder.savedPrompts";
+const ANALYSIS_STORAGE_KEY = "groovePromptBuilder.audioAnalysisPrompts";
 const defaultGuidedAnswers = Object.fromEntries(
   GUIDED_BUILDER_QUESTIONS.map((question) => [question.id, question.options[0]?.id])
 );
+const AUDIO_ANALYSIS_MODES = [
+  { id: "beat", label: "Beat" },
+  { id: "percussion", label: "Percussion" },
+  { id: "melody", label: "Melody" },
+  { id: "groove", label: "Groove" },
+  { id: "structure", label: "Song Aufbau" },
+];
 const EXCLUDE_GROUP_LABELS = {
   commercialMainstream: "Commercial / Mainstream",
   vocals: "Vocals",
@@ -64,6 +72,166 @@ function loadSavedSnapshots() {
   } catch {
     return [];
   }
+}
+
+function loadSavedAnalysisPrompts() {
+  try {
+    return JSON.parse(localStorage.getItem(ANALYSIS_STORAGE_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function persistAnalysisPrompts(items) {
+  localStorage.setItem(ANALYSIS_STORAGE_KEY, JSON.stringify(items));
+}
+
+function formatTime(seconds = 0) {
+  const safe = Math.max(0, seconds);
+  const minutes = Math.floor(safe / 60);
+  const rest = Math.floor(safe % 60).toString().padStart(2, "0");
+  return `${minutes}:${rest}`;
+}
+
+function generateWaveformPeaks(audioBuffer, pointCount = 900) {
+  if (!audioBuffer) return [];
+  const channel = audioBuffer.getChannelData(0);
+  const step = Math.max(1, Math.floor(channel.length / pointCount));
+  const peaks = [];
+  for (let index = 0; index < channel.length; index += step) {
+    let max = 0;
+    for (let offset = 0; offset < step && index + offset < channel.length; offset += 1) {
+      max = Math.max(max, Math.abs(channel[index + offset]));
+    }
+    peaks.push(max);
+  }
+  const peak = Math.max(...peaks, 0.0001);
+  return peaks.map((value) => value / peak);
+}
+
+function estimateAudioFeatures(audioBuffer, selection) {
+  const start = Math.max(0, Math.min(selection.start, selection.end));
+  const end = Math.min(audioBuffer.duration, Math.max(selection.start, selection.end));
+  const startSample = Math.floor(start * audioBuffer.sampleRate);
+  const endSample = Math.max(startSample + 1, Math.floor(end * audioBuffer.sampleRate));
+  const channel = audioBuffer.getChannelData(0);
+  const maxReads = 180000;
+  const step = Math.max(1, Math.floor((endSample - startSample) / maxReads));
+  let sumSquares = 0;
+  let peak = 0;
+  let zc = 0;
+  let previous = channel[startSample] || 0;
+  let count = 0;
+
+  for (let index = startSample; index < endSample; index += step) {
+    const sample = channel[index] || 0;
+    sumSquares += sample * sample;
+    peak = Math.max(peak, Math.abs(sample));
+    if ((sample >= 0 && previous < 0) || (sample < 0 && previous >= 0)) zc += 1;
+    previous = sample;
+    count += 1;
+  }
+
+  const frameSize = 1024;
+  const hop = 512;
+  const energies = [];
+  const times = [];
+  for (let index = startSample; index < endSample - frameSize; index += hop) {
+    let frame = 0;
+    for (let offset = 0; offset < frameSize; offset += 1) {
+      const sample = channel[index + offset] || 0;
+      frame += sample * sample;
+    }
+    energies.push(Math.sqrt(frame / frameSize));
+    times.push(index / audioBuffer.sampleRate);
+  }
+  const averageEnergy = energies.reduce((sum, value) => sum + value, 0) / Math.max(1, energies.length);
+  const variance = energies.reduce((sum, value) => sum + (value - averageEnergy) ** 2, 0) / Math.max(1, energies.length);
+  const threshold = averageEnergy + Math.sqrt(variance) * 0.75;
+  const onsetTimes = [];
+  for (let index = 1; index < energies.length - 1; index += 1) {
+    if (energies[index] > threshold && energies[index] > energies[index - 1] && energies[index] >= energies[index + 1]) {
+      if (!onsetTimes.length || times[index] - onsetTimes[onsetTimes.length - 1] > 0.16) {
+        onsetTimes.push(times[index]);
+      }
+    }
+  }
+  const intervals = onsetTimes
+    .slice(1)
+    .map((time, index) => time - onsetTimes[index])
+    .filter((interval) => interval >= 0.25 && interval <= 1.2)
+    .sort((a, b) => a - b);
+  const medianInterval = intervals[Math.floor(intervals.length / 2)];
+  const bpm = medianInterval ? Math.round(60 / medianInterval) : null;
+  const transientRate = onsetTimes.length / Math.max(1, end - start);
+  const zcr = zc / Math.max(1, count);
+  const quarters = [0, 1, 2, 3].map((quarter) => {
+    const from = Math.floor((energies.length * quarter) / 4);
+    const to = Math.floor((energies.length * (quarter + 1)) / 4);
+    const slice = energies.slice(from, to);
+    return slice.reduce((sum, value) => sum + value, 0) / Math.max(1, slice.length);
+  });
+
+  return {
+    start,
+    end,
+    duration: end - start,
+    rms: Math.sqrt(sumSquares / Math.max(1, count)),
+    peak,
+    zcr,
+    bpm,
+    transientRate,
+    onsetCount: onsetTimes.length,
+    energyTrend: quarters,
+  };
+}
+
+function describeEnergy(rms) {
+  if (rms > 0.22) return "high-energy, dense and upfront";
+  if (rms > 0.12) return "steady club energy with controlled density";
+  return "restrained, spacious and textural";
+}
+
+function describeBrightness(zcr) {
+  if (zcr > 0.18) return "bright, clicky upper texture";
+  if (zcr > 0.1) return "balanced mid/high detail";
+  return "dark, warm, low-passed tone";
+}
+
+function describeMotion(values) {
+  const first = values[0] || 0;
+  const last = values[values.length - 1] || 0;
+  if (last > first * 1.25) return "additive lift across the selected section";
+  if (first > last * 1.25) return "subtractive reduction across the selected section";
+  return "stable loop evolution with subtle internal movement";
+}
+
+function buildAudioPrompts({ sourceName, youtubeLink, features, modes }) {
+  const source = youtubeLink ? `${sourceName} / ${youtubeLink}` : sourceName;
+  const bpmText = features.bpm ? `${features.bpm} BPM estimate` : "BPM not confidently detected";
+  const energy = describeEnergy(features.rms);
+  const brightness = describeBrightness(features.zcr);
+  const motion = describeMotion(features.energyTrend);
+  const range = `${formatTime(features.start)}-${formatTime(features.end)}`;
+  const prompts = {};
+
+  if (modes.beat) {
+    prompts.beat = `Beat reference from ${source}, ${range}: ${bpmText}, ${energy}, tight minimal/deep techno pulse, controlled kick weight, no EDM festival drop, keep the beat functional, DJ-friendly and polished.`;
+  }
+  if (modes.percussion) {
+    prompts.percussion = `Percussion reference from ${source}, ${range}: transient density ${features.onsetCount} hits, ${brightness}, use subtle hats, clicks, ghost percussion and restrained fills, avoid stock sample-pack drums or obvious snare-roll clichés.`;
+  }
+  if (modes.melody) {
+    prompts.melody = `Melody and harmony reference from ${source}, ${range}: ${brightness}, restrained melodic movement, use dub chords, filtered pads or small synth motifs rather than a big lead, keep emotion intelligent, dark and understated.`;
+  }
+  if (modes.groove) {
+    prompts.groove = `Groove reference from ${source}, ${range}: ${bpmText}, ${motion}, bass and percussion should interlock with micro-variation, swing/shuffle detail and controlled low-end, avoid commercial dance pumping or cheesy hook focus.`;
+  }
+  if (modes.structure) {
+    prompts.structure = `Arrangement reference from ${source}, ${range}: ${motion}, selected region lasts ${features.duration.toFixed(1)} seconds, translate into phrase-based 8/16-bar evolution with additive/subtractive entries, restrained breakdown behavior and smooth DJ-friendly transition logic.`;
+  }
+
+  return prompts;
 }
 
 function ToggleGroup({ label, value, options, onChange }) {
@@ -285,8 +453,179 @@ function AssignmentSection({ group, tags, onFocus, onRemove }) {
   );
 }
 
+function AudioAnalyzerPanel({
+  audioRef,
+  canvasRef,
+  audioUrl,
+  audioName,
+  audioDuration,
+  audioSelection,
+  audioStatus,
+  youtubeLink,
+  analysisModes,
+  audioAnalysis,
+  savedAnalysisPrompts,
+  onFileChange,
+  onYoutubeChange,
+  onYoutubeLoad,
+  onCanvasDown,
+  onCanvasMove,
+  onCanvasUp,
+  onModeToggle,
+  onAnalyze,
+  onSavePrompt,
+  onSaveAll,
+  onApplyPrompt,
+  onApplyAll,
+  onDeleteSaved,
+}) {
+  const grouped = savedAnalysisPrompts.reduce((groups, prompt) => {
+    groups[prompt.group] = [...(groups[prompt.group] || []), prompt];
+    return groups;
+  }, {});
+
+  return (
+    <div className="card-content analyzer-content">
+      <div className="panel-heading">
+        <AudioLines size={18} />
+        <div>
+          <h2>Audio Analysis</h2>
+          <p>MP3/WAV laden, Bereich in der Waveform markieren und daraus Beat-, Percussion-, Melody-, Groove- oder Struktur-Prompts erzeugen.</p>
+        </div>
+      </div>
+
+      <div className="analysis-source-grid">
+        <section className="analysis-card">
+          <h3>Local Audio</h3>
+          <label className="file-drop">
+            <input accept="audio/mpeg,audio/mp3,audio/wav,audio/wave" type="file" onChange={onFileChange} />
+            <strong>{audioName || "MP3/WAV auswählen"}</strong>
+            <span>{audioName ? `${formatTime(audioDuration)} loaded` : "Waveform + Player werden lokal im Browser erzeugt."}</span>
+          </label>
+        </section>
+
+        <section className="analysis-card">
+          <h3>YouTube Reference</h3>
+          <div className="youtube-row">
+            <input
+              value={youtubeLink}
+              placeholder="https://youtube.com/watch?v=..."
+              onChange={(event) => onYoutubeChange(event.target.value)}
+            />
+            <button type="button" onClick={onYoutubeLoad}>Use Link</button>
+          </div>
+          <p>Direkte YouTube-Waveform-Analyse braucht einen Backend-Extractor. In dieser Browser-Version wird der Link als Referenz gespeichert; Analyse läuft über hochgeladene Audio-Datei.</p>
+        </section>
+      </div>
+
+      {audioStatus && <div className="analysis-status">{audioStatus}</div>}
+
+      <section className="waveform-panel">
+        <div className="waveform-toolbar">
+          <div>
+            <strong>{audioName || "No audio loaded"}</strong>
+            <span>
+              Selection {formatTime(audioSelection.start)} - {formatTime(audioSelection.end || audioDuration)}
+            </span>
+          </div>
+          <audio ref={audioRef} controls src={audioUrl || undefined} />
+        </div>
+        <canvas
+          className="waveform-canvas"
+          ref={canvasRef}
+          onMouseDown={onCanvasDown}
+          onMouseMove={onCanvasMove}
+          onMouseUp={onCanvasUp}
+          onMouseLeave={onCanvasUp}
+        />
+      </section>
+
+      <section className="analysis-controls">
+        <div>
+          <h3>Analyze Focus</h3>
+          <div className="analysis-mode-grid">
+            {AUDIO_ANALYSIS_MODES.map((mode) => (
+              <button
+                className={analysisModes[mode.id] ? "is-active" : ""}
+                key={mode.id}
+                type="button"
+                onClick={() => onModeToggle(mode.id)}
+              >
+                {mode.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <button className="primary-action" type="button" onClick={onAnalyze}>
+          Analyze Selected Range
+        </button>
+      </section>
+
+      {audioAnalysis && (
+        <section className="analysis-results">
+          <div className="assignment-heading">
+            <h3>Generated Analysis Prompts</h3>
+            <span>{audioAnalysis.sourceName} / {formatTime(audioAnalysis.features.start)}-{formatTime(audioAnalysis.features.end)}</span>
+          </div>
+          <div className="analysis-feature-grid">
+            <span>BPM: <strong>{audioAnalysis.features.bpm || "unclear"}</strong></span>
+            <span>Energy: <strong>{describeEnergy(audioAnalysis.features.rms)}</strong></span>
+            <span>Tone: <strong>{describeBrightness(audioAnalysis.features.zcr)}</strong></span>
+            <span>Motion: <strong>{describeMotion(audioAnalysis.features.energyTrend)}</strong></span>
+          </div>
+          <div className="analysis-prompt-list">
+            {Object.entries(audioAnalysis.prompts).map(([mode, prompt]) => (
+              <section className="analysis-prompt-card" key={mode}>
+                <h4>{AUDIO_ANALYSIS_MODES.find((item) => item.id === mode)?.label || mode}</h4>
+                <p>{prompt}</p>
+                <div>
+                  <button type="button" onClick={() => onApplyPrompt(prompt)}>Apply to Extra input</button>
+                  <button type="button" onClick={() => onSavePrompt(mode, prompt)}>Save Template</button>
+                </div>
+              </section>
+            ))}
+          </div>
+          <div className="analysis-actions">
+            <button type="button" onClick={onApplyAll}>Apply All to Extra input</button>
+            <button type="button" onClick={onSaveAll}>Save All as Templates</button>
+          </div>
+        </section>
+      )}
+
+      <section className="saved-analysis">
+        <div className="assignment-heading">
+          <h3>Saved Analysis Templates</h3>
+          <span>grouped by prompt type</span>
+        </div>
+        {Object.keys(grouped).length ? (
+          Object.entries(grouped).map(([group, prompts]) => (
+            <section className="saved-analysis-group" key={group}>
+              <h4>{AUDIO_ANALYSIS_MODES.find((item) => item.id === group)?.label || group}</h4>
+              {prompts.map((prompt) => (
+                <div className="saved-analysis-item" key={prompt.id}>
+                  <strong>{prompt.name}</strong>
+                  <p>{prompt.prompt}</p>
+                  <div>
+                    <button type="button" onClick={() => onApplyPrompt(prompt.prompt)}>Apply</button>
+                    <button type="button" onClick={() => onDeleteSaved(prompt.id)}>Delete</button>
+                  </div>
+                </div>
+              ))}
+            </section>
+          ))
+        ) : (
+          <p className="empty-state">No saved audio analysis templates yet.</p>
+        )}
+      </section>
+    </div>
+  );
+}
+
 function App() {
   const [activeCard, setActiveCard] = useState("setup");
+  const audioRef = useRef(null);
+  const waveformCanvasRef = useRef(null);
+  const waveformDragRef = useRef(null);
   const [trackRows, setTrackRows] = useState(createDefaultTrackRows);
   const [activeTrackId, setActiveTrackId] = useState("bass");
   const [activeTagGroup, setActiveTagGroup] = useState("sound");
@@ -295,6 +634,16 @@ function App() {
   const [selectedCells, setSelectedCells] = useState([]);
   const selectionAnchorRef = useRef(null);
   const [selectedExcludes, setSelectedExcludes] = useState(() => DEFAULT_EXCLUDES);
+  const [audioUrl, setAudioUrl] = useState("");
+  const [audioName, setAudioName] = useState("");
+  const [audioBuffer, setAudioBuffer] = useState(null);
+  const [waveformPeaks, setWaveformPeaks] = useState([]);
+  const [audioSelection, setAudioSelection] = useState({ start: 0, end: 0 });
+  const [audioStatus, setAudioStatus] = useState("");
+  const [youtubeLink, setYoutubeLink] = useState("");
+  const [analysisModes, setAnalysisModes] = useState(() => Object.fromEntries(AUDIO_ANALYSIS_MODES.map((mode) => [mode.id, true])));
+  const [audioAnalysis, setAudioAnalysis] = useState(null);
+  const [savedAnalysisPrompts, setSavedAnalysisPrompts] = useState(loadSavedAnalysisPrompts);
   const [blockOverrides, setBlockOverrides] = useState({});
   const [revisionCounter, setRevisionCounter] = useState(1);
   const [savedSnapshots, setSavedSnapshots] = useState(loadSavedSnapshots);
@@ -347,6 +696,47 @@ function App() {
     [meta, structure, selections, arrangement, notes, trackRows, blockOverrides, promptDensity, selectedExcludes]
   );
   const styleCharCount = prompts.style.length;
+
+  useEffect(() => {
+    const canvas = waveformCanvasRef.current;
+    if (!canvas) return;
+    const width = canvas.clientWidth || 900;
+    const height = canvas.clientHeight || 190;
+    const ratio = window.devicePixelRatio || 1;
+    canvas.width = Math.floor(width * ratio);
+    canvas.height = Math.floor(height * ratio);
+    const context = canvas.getContext("2d");
+    context.scale(ratio, ratio);
+    context.clearRect(0, 0, width, height);
+    context.fillStyle = "rgba(8, 12, 16, 0.88)";
+    context.fillRect(0, 0, width, height);
+
+    if (!waveformPeaks.length) {
+      context.fillStyle = "rgba(142, 157, 177, 0.38)";
+      context.font = "12px sans-serif";
+      context.fillText("Load an MP3 or WAV file to generate waveform analysis.", 18, height / 2);
+      return;
+    }
+
+    const barWidth = Math.max(1, width / waveformPeaks.length);
+    waveformPeaks.forEach((peak, index) => {
+      const barHeight = Math.max(2, peak * (height - 34));
+      const x = index * barWidth;
+      const y = (height - barHeight) / 2;
+      context.fillStyle = "rgba(110, 198, 255, 0.72)";
+      context.fillRect(x, y, Math.max(1, barWidth - 1), barHeight);
+    });
+
+    if (audioBuffer) {
+      const startX = (Math.min(audioSelection.start, audioSelection.end) / audioBuffer.duration) * width;
+      const endX = (Math.max(audioSelection.start, audioSelection.end) / audioBuffer.duration) * width;
+      context.fillStyle = "rgba(198, 245, 110, 0.2)";
+      context.fillRect(startX, 0, Math.max(2, endX - startX), height);
+      context.strokeStyle = "rgba(198, 245, 110, 0.9)";
+      context.lineWidth = 2;
+      context.strokeRect(startX, 1, Math.max(2, endX - startX), height - 2);
+    }
+  }, [audioBuffer, audioSelection, waveformPeaks]);
 
   const applyPreset = (preset) => {
     setMeta((previous) => ({ ...previous, ...preset }));
@@ -743,6 +1133,139 @@ function App() {
     );
   };
 
+  const canvasTimeFromEvent = (event) => {
+    if (!audioBuffer || !waveformCanvasRef.current) return 0;
+    const bounds = waveformCanvasRef.current.getBoundingClientRect();
+    const x = Math.min(bounds.width, Math.max(0, event.clientX - bounds.left));
+    return (x / bounds.width) * audioBuffer.duration;
+  };
+
+  const handleAudioFile = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setAudioStatus("Decoding audio...");
+    setAudioAnalysis(null);
+    try {
+      const objectUrl = URL.createObjectURL(file);
+      const arrayBuffer = await file.arrayBuffer();
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      const context = new AudioContextClass();
+      const decoded = await context.decodeAudioData(arrayBuffer);
+      await context.close();
+      setAudioUrl((previous) => {
+        if (previous) URL.revokeObjectURL(previous);
+        return objectUrl;
+      });
+      setAudioName(file.name);
+      setAudioBuffer(decoded);
+      setWaveformPeaks(generateWaveformPeaks(decoded));
+      setAudioSelection({ start: 0, end: Math.min(decoded.duration, 32) });
+      setAudioStatus(`Loaded ${file.name}. Mark a region in the waveform or analyze the first section.`);
+    } catch (error) {
+      setAudioStatus(`Could not decode audio: ${error.message}`);
+    }
+  };
+
+  const handleYoutubeLoad = () => {
+    if (!youtubeLink.trim()) {
+      setAudioStatus("Paste a YouTube link first.");
+      return;
+    }
+    setAudioStatus("YouTube link saved as reference. Direct waveform/audio extraction from YouTube needs a backend extractor; upload an MP3/WAV export for analysis.");
+  };
+
+  const handleWaveformMouseDown = (event) => {
+    if (!audioBuffer) return;
+    const time = canvasTimeFromEvent(event);
+    waveformDragRef.current = time;
+    setAudioSelection({ start: time, end: time });
+  };
+
+  const handleWaveformMouseMove = (event) => {
+    if (!audioBuffer || waveformDragRef.current === null) return;
+    setAudioSelection({ start: waveformDragRef.current, end: canvasTimeFromEvent(event) });
+  };
+
+  const handleWaveformMouseUp = (event) => {
+    if (!audioBuffer || waveformDragRef.current === null) return;
+    const time = canvasTimeFromEvent(event);
+    const start = Math.min(waveformDragRef.current, time);
+    const end = Math.max(waveformDragRef.current, time);
+    waveformDragRef.current = null;
+    if (Math.abs(end - start) < 0.25) {
+      setAudioSelection({ start: Math.max(0, start - 4), end: Math.min(audioBuffer.duration, start + 4) });
+      return;
+    }
+    setAudioSelection({ start, end });
+  };
+
+  const toggleAnalysisMode = (mode) => {
+    setAnalysisModes((previous) => ({ ...previous, [mode]: !previous[mode] }));
+  };
+
+  const runAudioAnalysis = () => {
+    if (!audioBuffer) {
+      setAudioStatus("Load an MP3/WAV file before analyzing.");
+      return;
+    }
+    if (!Object.values(analysisModes).some(Boolean)) {
+      setAudioStatus("Select at least one analysis focus.");
+      return;
+    }
+    const features = estimateAudioFeatures(audioBuffer, audioSelection.end ? audioSelection : { start: 0, end: audioBuffer.duration });
+    const sourceName = audioName || "audio reference";
+    const generatedPrompts = buildAudioPrompts({ sourceName, youtubeLink: youtubeLink.trim(), features, modes: analysisModes });
+    setAudioAnalysis({ sourceName, features, prompts: generatedPrompts, createdAt: new Date().toISOString() });
+    setAudioStatus("Analysis prompts generated from selected waveform range.");
+  };
+
+  const storeAnalysisPrompts = (items) => {
+    const next = [...items, ...savedAnalysisPrompts];
+    setSavedAnalysisPrompts(next);
+    persistAnalysisPrompts(next);
+  };
+
+  const saveAnalysisPrompt = (group, prompt) => {
+    storeAnalysisPrompts([
+      {
+        id: crypto.randomUUID ? crypto.randomUUID() : `analysis-${Date.now()}`,
+        group,
+        name: `${AUDIO_ANALYSIS_MODES.find((mode) => mode.id === group)?.label || group} / ${audioName || "Audio"}`,
+        prompt,
+        createdAt: new Date().toISOString(),
+      },
+    ]);
+  };
+
+  const saveAllAnalysisPrompts = () => {
+    if (!audioAnalysis) return;
+    storeAnalysisPrompts(
+      Object.entries(audioAnalysis.prompts).map(([group, prompt]) => ({
+        id: crypto.randomUUID ? crypto.randomUUID() : `analysis-${Date.now()}-${group}`,
+        group,
+        name: `${AUDIO_ANALYSIS_MODES.find((mode) => mode.id === group)?.label || group} / ${audioName || "Audio"}`,
+        prompt,
+        createdAt: new Date().toISOString(),
+      }))
+    );
+  };
+
+  const applyAnalysisPrompt = (prompt) => {
+    setNotes((previous) => `${previous ? `${previous}\n\n` : ""}[Audio Analysis]\n${prompt}`);
+    setActiveCard("setup");
+  };
+
+  const applyAllAnalysisPrompts = () => {
+    if (!audioAnalysis) return;
+    applyAnalysisPrompt(Object.values(audioAnalysis.prompts).join("\n"));
+  };
+
+  const deleteSavedAnalysisPrompt = (id) => {
+    const next = savedAnalysisPrompts.filter((prompt) => prompt.id !== id);
+    setSavedAnalysisPrompts(next);
+    persistAnalysisPrompts(next);
+  };
+
   const optimizePromptDensity = () => {
     if (styleCharCount >= 900) {
       setPromptDensity("compact");
@@ -780,6 +1303,7 @@ function App() {
             { id: "setup", label: "Song Setup", icon: Music2 },
             { id: "structure", label: "Structure", icon: Layers3 },
             { id: "elements", label: "Elements", icon: CircleDot },
+            { id: "analyze", label: "Analyze", icon: AudioLines },
             { id: "saved", label: "Saved", icon: Clipboard },
           ].map((item) => (
             <button
@@ -1160,6 +1684,35 @@ function App() {
                   />
                 </label>
               </div>
+            )}
+
+            {activeCard === "analyze" && (
+              <AudioAnalyzerPanel
+                audioRef={audioRef}
+                canvasRef={waveformCanvasRef}
+                audioUrl={audioUrl}
+                audioName={audioName}
+                audioDuration={audioBuffer?.duration || 0}
+                audioSelection={audioSelection}
+                audioStatus={audioStatus}
+                youtubeLink={youtubeLink}
+                analysisModes={analysisModes}
+                audioAnalysis={audioAnalysis}
+                savedAnalysisPrompts={savedAnalysisPrompts}
+                onFileChange={handleAudioFile}
+                onYoutubeChange={setYoutubeLink}
+                onYoutubeLoad={handleYoutubeLoad}
+                onCanvasDown={handleWaveformMouseDown}
+                onCanvasMove={handleWaveformMouseMove}
+                onCanvasUp={handleWaveformMouseUp}
+                onModeToggle={toggleAnalysisMode}
+                onAnalyze={runAudioAnalysis}
+                onSavePrompt={saveAnalysisPrompt}
+                onSaveAll={saveAllAnalysisPrompts}
+                onApplyPrompt={applyAnalysisPrompt}
+                onApplyAll={applyAllAnalysisPrompts}
+                onDeleteSaved={deleteSavedAnalysisPrompt}
+              />
             )}
 
             {activeCard === "saved" && (
