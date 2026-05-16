@@ -766,6 +766,372 @@ export function createInitialSelections() {
   );
 }
 
+export function createArrangementFromRanges(length, ranges) {
+  const blockCount = length / 4;
+  const arrangement = Object.fromEntries(INSTRUMENTS.map((instrument) => [instrument.id, Array(blockCount).fill(false)]));
+
+  Object.entries(ranges).forEach(([instrumentId, instrumentRanges]) => {
+    instrumentRanges.forEach(([start, end]) => {
+      for (let index = Math.max(0, start); index <= Math.min(blockCount - 1, end); index += 1) {
+        arrangement[instrumentId][index] = true;
+      }
+    });
+  });
+
+  return arrangement;
+}
+
+export function createSelectionsFromMap(map) {
+  const selections = createInitialSelections();
+  Object.entries(map).forEach(([instrumentId, groups]) => {
+    selections[instrumentId] = {
+      ...selections[instrumentId],
+      ...groups,
+    };
+  });
+  return selections;
+}
+
+export const JOURNEY_BLUEPRINTS = [
+  {
+    id: "opening-drift",
+    label: "Track 01 - Opening Drift",
+    time: "00:00:00 - 00:04:59",
+    summary: "Intro, very calm warm-up with pads, soft sub, muffled kick and slow filter opening.",
+    meta: {
+      style: "deep dub techno / deep house / minimal afterhours",
+      bpm: 122,
+      key: "D minor",
+      energy: "intro / warm-up",
+      mood: "warm, dark, hypnotic, spacious Amsterdam afterhours cellar club",
+      groove: "slow opening drift, texture-first dub pulse",
+      length: 64,
+      vocalMode: "instrumental-vocal-fx",
+    },
+    structure: [
+      { id: "atmos-open", label: "Atmos Open", role: "intro", start: 1, end: 16, intent: "Begin with deep pads, soft sub undertone, distant dub-delay elements and no full kick." },
+      { id: "filtered-pulse", label: "Filtered Pulse", role: "build", start: 17, end: 32, intent: "Muffled kick slowly emerges while low-pass filter opens and sparse hats appear." },
+      { id: "bass-define", label: "Bass Define", role: "variation", start: 33, end: 48, intent: "Bass becomes more defined while delay chords stay restrained and warm." },
+      { id: "open-out", label: "Open Out", role: "outro", start: 49, end: 64, intent: "Mix opens slightly with more highs, long reverb tails and slow transition readiness." },
+    ],
+    ranges: {
+      pads: [[0, 15]],
+      sub: [[0, 15]],
+      kick: [[4, 15]],
+      hats: [[6, 15]],
+      chords: [[2, 15]],
+      fx: [[0, 15]],
+      transitions: [[12, 15]],
+    },
+    selections: {
+      pads: { sound: ["warm analog pads", "dark drone bed"], tone: ["filtered tape haze", "distant room pad"], groove: ["long-form evolution"] },
+      sub: { sound: ["soft low-end bloom", "analog sub oscillator"], tone: ["invisible sub support"], groove: ["held sub tension"] },
+      kick: { sound: ["muted kick thump"], tone: ["low-pass softened kick"], groove: ["intro pulse only"] },
+      hats: { sound: ["shuffled hats"], tone: ["low-passed hats"], groove: ["shadow hat shuffle"] },
+      chords: { sound: ["dub chord stabs"], tone: ["tape-delayed chords"], groove: ["chord stab echo rhythm"] },
+      fx: { sound: ["vinyl crackle bed"], tone: ["filtered tape echo"], groove: ["shadow FX pulse"] },
+      transitions: { sound: ["white-noise sweep"], tone: ["tension filter close"], groove: ["energy staircase"] },
+    },
+    notes: "Deep dub techno intro in D minor, warm analog pads, soft sub bass, muffled kick slowly emerging, sparse hi-hats, dub delay chord stabs, long reverb tails, gradual low-pass filter opening.",
+  },
+  {
+    id: "first-pulse",
+    label: "Track 02 - First Pulse",
+    time: "00:04:59 - 00:08:03",
+    summary: "Groove starts properly with firmer kick, rolling sub bass, short dub stabs and subtle clap.",
+    meta: {
+      style: "minimal deep house / deep dub techno",
+      bpm: 122,
+      key: "D minor to F minor",
+      energy: "groove begins",
+      mood: "smoky underground radio mix, warm and restrained",
+      groove: "firm warm pulse with rolling sub movement",
+      length: 64,
+      vocalMode: "instrumental-vocal-fx",
+    },
+    structure: [
+      { id: "pad-handoff", label: "Pad Handoff", role: "intro", start: 1, end: 12, intent: "Previous pad carpet remains briefly and fades under the new groove." },
+      { id: "pulse-lock", label: "Pulse Lock", role: "build", start: 13, end: 32, intent: "Kick stabilizes, sub bassline begins moving, chord stabs add small accents." },
+      { id: "perc-fill", label: "Perc Fill", role: "variation", start: 33, end: 52, intent: "Add open hats, shaker groove and short delay fills without creating a hook." },
+      { id: "soft-mixout", label: "Soft Mixout", role: "outro", start: 53, end: 64, intent: "Intro fog is reduced, old layers high-passed and faded." },
+    ],
+    ranges: {
+      pads: [[0, 5]],
+      kick: [[2, 15]],
+      bass: [[3, 15]],
+      sub: [[3, 15]],
+      hats: [[3, 15]],
+      clap: [[4, 14]],
+      chords: [[3, 15]],
+      perc: [[8, 15]],
+      fx: [[0, 4], [10, 15]],
+      transitions: [[13, 15]],
+    },
+    selections: {
+      kick: { sound: ["rounded kick"], tone: ["warm overdrive"], groove: ["groove pocket"] },
+      bass: { sound: ["rolling bassline"], tone: ["warm analog bass"], groove: ["hypnotic bass loop"] },
+      sub: { sound: ["sub bass pulse"], tone: ["sidechain breathing"], groove: ["locked with kick"] },
+      clap: { sound: ["muted clap layer"], tone: ["dark filtered clap"], groove: ["backbeat accent"] },
+      hats: { sound: ["shuffled hats"], tone: ["tape-softened hats"], groove: ["shaker shuffle"] },
+      chords: { sound: ["dub chord stabs"], tone: ["tape-delayed chords"], groove: ["delay tail bridge"] },
+      fx: { sound: ["filter sweep"], tone: ["dub feedback cloud"], groove: ["automation punctuation"] },
+    },
+    notes: "Minimal deep house track, firm but warm kick, rolling sub bass, short dub chord stabs, subtle clap, soft shaker groove, background pads sidechained to the kick, no big melody.",
+  },
+  {
+    id: "low-light-motion",
+    label: "Track 03 - Low Light Motion",
+    time: "00:08:03 - 00:12:51",
+    summary: "Darker flowing main groove with steady kick, deep rolling bassline, muted dub chords and hat build.",
+    meta: {
+      style: "dark deep techno / deep dub techno",
+      bpm: 123,
+      key: "F minor",
+      energy: "dark flowing main groove",
+      mood: "low light warehouse atmosphere, elegant and hypnotic",
+      groove: "steady four-on-the-floor with dark rolling bass",
+      length: 64,
+      vocalMode: "instrumental-vocal-fx",
+    },
+    structure: [
+      { id: "dark-lock", label: "Dark Lock", role: "intro", start: 1, end: 16, intent: "Kick and bass lock into a darker stable club groove." },
+      { id: "hat-build", label: "Hat Build", role: "build", start: 17, end: 36, intent: "Closed hats and percussion ticks increase forward motion." },
+      { id: "open-ride", label: "Open Ride", role: "drop", start: 37, end: 52, intent: "Open hat or ride layer appears while dub chords stay muted." },
+      { id: "filter-out", label: "Filter Out", role: "outro", start: 53, end: 64, intent: "Chord layer is band-passed and bass makes space for the next mix." },
+    ],
+    ranges: {
+      kick: [[0, 15]],
+      bass: [[0, 14]],
+      sub: [[0, 14]],
+      hats: [[1, 15]],
+      perc: [[3, 14]],
+      chords: [[0, 13]],
+      fx: [[7, 15]],
+      transitions: [[13, 15]],
+    },
+    selections: {
+      kick: { sound: ["909 punch kick"], tone: ["tight low-end"], groove: ["four-on-the-floor"] },
+      bass: { sound: ["deep rounded bass"], tone: ["low-pass filtered"], groove: ["hypnotic bass loop"] },
+      hats: { sound: ["909 closed hats", "909 open hat"], tone: ["crisp top-end"], groove: ["hat tension lift"] },
+      perc: { sound: ["metallic ticks", "click percussion"], tone: ["metallic resonant tone"], groove: ["offbeat click grid"] },
+      chords: { sound: ["dub chord stabs"], tone: ["filtered melancholic chords"], groove: ["chord stab echo rhythm"] },
+      fx: { sound: ["reverb swell"], tone: ["phaser movement"], groove: ["bar-end glitch"] },
+      transitions: { sound: ["dub delay spill"], tone: ["filtered transition sweep"], groove: ["two-bar transition fill"] },
+    },
+    notes: "Dark deep techno groove in F minor, steady kick, deep rolling bassline, muted dub chords with ping-pong delay, closed hats building into open hats, band-pass filter movement.",
+  },
+  {
+    id: "glass-tunnel",
+    label: "Track 04 - Glass Tunnel",
+    time: "00:12:51 - 00:17:25",
+    summary: "Airier glassy tunnel with metallic percussion, stereo delay, warm sub and restrained melody.",
+    meta: {
+      style: "deep melodic techno / minimal deep house",
+      bpm: 122,
+      key: "G minor",
+      energy: "textural and open",
+      mood: "glassy tunnel-like progression, airy but deep",
+      groove: "constant minimal tunnel movement",
+      length: 64,
+      vocalMode: "instrumental-vocal-fx",
+    },
+    structure: [
+      { id: "glass-entry", label: "Glass Entry", role: "intro", start: 1, end: 16, intent: "Minimal drums stay steady while upper textures open." },
+      { id: "air-open", label: "Air Open", role: "build", start: 17, end: 32, intent: "Glassy synths, metallic percussion and stereo delay fragments enter." },
+      { id: "tunnel-motion", label: "Tunnel Motion", role: "drop", start: 33, end: 52, intent: "Bass remains warm and deep while the mix moves through fine detail." },
+      { id: "high-cut", label: "High Cut", role: "outro", start: 53, end: 64, intent: "High end reduces slowly while kick glues the transition." },
+    ],
+    ranges: {
+      kick: [[0, 15]],
+      sub: [[0, 15]],
+      bass: [[2, 15]],
+      synth: [[3, 13]],
+      perc: [[2, 15]],
+      hats: [[4, 15]],
+      pads: [[0, 12]],
+      fx: [[3, 15]],
+      transitions: [[13, 15]],
+    },
+    selections: {
+      synth: { sound: ["FM bell pluck", "granular synth flecks"], tone: ["dreamy filtered melody"], groove: ["minimal arpeggiator"] },
+      perc: { sound: ["metallic ticks", "modular blips"], tone: ["metallic resonant tone"], groove: ["polyrhythmic taps"] },
+      sub: { sound: ["analog sub oscillator"], tone: ["controlled sub pressure"], groove: ["pulsing low-frequency movement"] },
+      fx: { sound: ["filter sweep"], tone: ["phaser movement"], groove: ["modulation sweep"] },
+      pads: { sound: ["noisy air pad"], tone: ["dreamy stereo wash"], groove: ["subtle LFO motion"] },
+    },
+    notes: "Deep melodic techno in G minor, glassy synth textures, soft metallic percussion, warm sub bass, evolving stereo delay, gentle auto-pan movement, restrained melody.",
+  },
+  {
+    id: "midnight-lift",
+    label: "Track 05 - Midnight Lift",
+    time: "00:17:25 - 00:21:02",
+    summary: "Subtle emotional lift with warmer chords, shimmer hats, ride accents and open reverb sends.",
+    meta: {
+      style: "atmospheric deep house / deep dub techno",
+      bpm: 122,
+      key: "C minor",
+      energy: "subtle emotional lift",
+      mood: "refined, intimate, brighter but not euphoric",
+      groove: "gentle lifted afterhours pulse",
+      length: 64,
+      vocalMode: "instrumental-vocal-fx",
+    },
+    structure: [
+      { id: "warm-entry", label: "Warm Entry", role: "intro", start: 1, end: 16, intent: "Warm chords open the emotional color while bass remains deep." },
+      { id: "upper-motion", label: "Upper Motion", role: "build", start: 17, end: 36, intent: "Hats shimmer, ride accents appear and upper range gains movement." },
+      { id: "lift", label: "Lift", role: "drop", start: 37, end: 52, intent: "Track lifts without euphoria, keeping a restrained afterhours character." },
+      { id: "filter-away", label: "Filter Away", role: "outro", start: 53, end: 64, intent: "Chord or hat layer is filtered away for the next middle section." },
+    ],
+    ranges: {
+      kick: [[0, 15]],
+      bass: [[0, 15]],
+      sub: [[0, 15]],
+      chords: [[0, 13]],
+      hats: [[1, 15]],
+      perc: [[4, 13]],
+      pads: [[0, 12]],
+      fx: [[6, 15]],
+      transitions: [[13, 15]],
+    },
+    selections: {
+      chords: { sound: ["minor seventh stabs", "Juno chord haze"], tone: ["dreamy suspended harmony"], groove: ["slow chord automation"] },
+      hats: { sound: ["ride shimmer", "909 open hat"], tone: ["air-band shimmer"], groove: ["swinged open hats"] },
+      pads: { sound: ["Juno-style pad"], tone: ["melancholic atmosphere"], groove: ["breathing sidechain pad"] },
+      fx: { sound: ["reverb swell"], tone: ["space echo color"], groove: ["two-beat effect throw"] },
+    },
+    notes: "Atmospheric deep house in C minor, warm emotional chords, smooth sub bass, gentle kick, shimmering hi-hats, subtle ride accents, long reverb sends, low-pass chord filter opening.",
+  },
+  {
+    id: "deep-current",
+    label: "Track 06 - Deep Current",
+    time: "00:21:02 - 00:27:12",
+    summary: "Long hypnotic core with pulsing sub, firm kick, delayed stabs, feedback automation and continuous flow.",
+    meta: {
+      style: "hypnotic deep dub techno",
+      bpm: 123,
+      key: "C minor",
+      energy: "long hypnotic core",
+      mood: "meditative underground club atmosphere, immersive continuous flow",
+      groove: "long evolving groove with no big drop",
+      length: 96,
+      vocalMode: "no-vocals",
+    },
+    structure: [
+      { id: "core-foundation", label: "Foundation", role: "intro", start: 1, end: 24, intent: "Kick and pulsing sub bass establish a long hypnotic foundation." },
+      { id: "dub-layer", label: "Dub Layer", role: "build", start: 25, end: 48, intent: "Delayed chord stabs and feedback automation create meditative depth." },
+      { id: "ride-pad", label: "Ride + Pad", role: "variation", start: 49, end: 72, intent: "Additional percussion, light ride and wider pad layer appear gradually." },
+      { id: "current-out", label: "Current Out", role: "outro", start: 73, end: 96, intent: "Old chords disappear in delay while next bass or kick can be mixed underneath." },
+    ],
+    ranges: {
+      kick: [[0, 23]],
+      bass: [[0, 23]],
+      sub: [[0, 23]],
+      chords: [[2, 21]],
+      hats: [[4, 23]],
+      perc: [[8, 21]],
+      pads: [[10, 20]],
+      fx: [[0, 23]],
+      transitions: [[18, 23]],
+    },
+    selections: {
+      kick: { sound: ["deep club kick"], tone: ["sub-tail controlled"], groove: ["drop anchor kick"] },
+      bass: { sound: ["filtered bass pulse"], tone: ["tape-warmed bass"], groove: ["one-bar loop mutation"] },
+      sub: { sound: ["sub bass pulse"], tone: ["sidechain breathing"], groove: ["locked with kick"] },
+      chords: { sound: ["dub chord stabs"], tone: ["tape-delayed chords"], groove: ["chord stab echo rhythm"] },
+      hats: { sound: ["shuffled hats", "ride shimmer"], tone: ["dusty hat layer"], groove: ["16th hat engine"] },
+      fx: { sound: ["tape delay feedback"], tone: ["dub feedback cloud"], groove: ["automation punctuation"] },
+    },
+    notes: "Hypnotic deep dub techno in C minor, long evolving groove, pulsing sub bass, firm kick, delayed chord stabs, feedback dub delay automation, no vocal, no big drop.",
+  },
+  {
+    id: "night-architecture",
+    label: "Track 07 - Night Architecture",
+    time: "00:27:12 - 00:32:30",
+    summary: "More structured club momentum with tighter kick, dry hats, rolling bass and precise rhythmic architecture.",
+    meta: {
+      style: "driving deep tech house / deep techno",
+      bpm: 124,
+      key: "F minor",
+      energy: "structured driving club momentum",
+      mood: "dark elegant and minimal, architectural rhythm section",
+      groove: "precise kick bass hat chord delay framework",
+      length: 64,
+      vocalMode: "instrumental-vocal-fx",
+    },
+    structure: [
+      { id: "direct-entry", label: "Direct Entry", role: "intro", start: 1, end: 16, intent: "Kick becomes more direct and hats sit clearly in the pocket." },
+      { id: "architecture", label: "Architecture", role: "build", start: 17, end: 36, intent: "Kick, bass, hat, chord and delay form a precise minimalist frame." },
+      { id: "club-loop", label: "Club Loop", role: "drop", start: 37, end: 52, intent: "Additional percussion or clap increases the club drive without clutter." },
+      { id: "low-cut", label: "Low Cut", role: "outro", start: 53, end: 64, intent: "Bassline is reduced or filtered while delay remains standing." },
+    ],
+    ranges: {
+      kick: [[0, 15]],
+      bass: [[0, 14]],
+      sub: [[0, 14]],
+      hats: [[0, 15]],
+      perc: [[3, 15]],
+      clap: [[6, 13]],
+      synth: [[4, 12]],
+      chords: [[0, 13]],
+      fx: [[6, 15]],
+      transitions: [[13, 15]],
+    },
+    selections: {
+      kick: { sound: ["909 punch kick"], tone: ["clicky attack"], groove: ["groove pocket"] },
+      bass: { sound: ["rolling bassline"], tone: ["tricky filter accent"], groove: ["late bass accent"] },
+      hats: { sound: ["909 closed hats"], tone: ["crisp top-end"], groove: ["16th hat engine"] },
+      perc: { sound: ["909 rimshot", "click percussion"], tone: ["phaser movement"], groove: ["rotating percussion loop"] },
+      clap: { sound: ["short room clap"], tone: ["short room clap"], groove: ["backbeat accent"] },
+      synth: { sound: ["short synth stabs", "modular bleep sequence"], tone: ["tricky rhythmic motif"], groove: ["gated synth rhythm"] },
+      fx: { sound: ["delay throws"], tone: ["phaser movement"], groove: ["automation punctuation"] },
+    },
+    notes: "Driving deep tech house in F minor, tight punchy kick, architectural rhythm section, rolling bassline, dry hi-hats, short synth stabs, phaser on percussion, dub delay throws.",
+  },
+  {
+    id: "closing-horizon",
+    label: "Track 08 - Closing Horizon",
+    time: "00:32:30 - 00:44:58",
+    summary: "Extended final horizon with club groove slowly dissolving into pads, long tape delays and filtered outro.",
+    meta: {
+      style: "extended deep techno closing track",
+      bpm: 122,
+      key: "F minor",
+      energy: "long atmospheric closing journey",
+      mood: "cinematic afterhours outro, emotional release without vocals",
+      groove: "gradually dissolving club groove",
+      length: 128,
+      vocalMode: "no-vocals",
+    },
+    structure: [
+      { id: "full-takeover", label: "Full Takeover", role: "intro", start: 1, end: 32, intent: "Club groove still present with kick, bass, chords and hats." },
+      { id: "space-expand", label: "Space Expand", role: "build", start: 33, end: 64, intent: "Pads widen, delay gets longer and atmosphere takes more space." },
+      { id: "reduce-perc", label: "Reduce Perc", role: "break", start: 65, end: 88, intent: "Percussion and hats reduce while reverb tails become more important." },
+      { id: "filtered-horizon", label: "Filtered Horizon", role: "outro", start: 89, end: 128, intent: "Kick and bass become muted, filter closes, pads and reverb remain until the end." },
+    ],
+    ranges: {
+      kick: [[0, 23]],
+      bass: [[0, 22]],
+      sub: [[0, 24]],
+      chords: [[0, 25]],
+      hats: [[0, 20]],
+      perc: [[4, 18]],
+      pads: [[0, 31]],
+      fx: [[0, 31]],
+      transitions: [[20, 31]],
+    },
+    selections: {
+      pads: { sound: ["spacious warm pads", "Prophet-style pad"], tone: ["dreamy stereo wash"], groove: ["long-form evolution"] },
+      kick: { sound: ["soft but steady kick", "rounded kick"], tone: ["low-pass softened kick"], groove: ["intro pulse only"] },
+      sub: { sound: ["deep sub pulse", "pure sine sub"], tone: ["rounded sub decay"], groove: ["sub drop return"] },
+      chords: { sound: ["dub chord stabs"], tone: ["tape-delayed chords"], groove: ["delay tail bridge"] },
+      hats: { sound: ["shuffled hats"], tone: ["low-passed hats"], groove: ["hat mute break"] },
+      fx: { sound: ["tape delay feedback", "reverb swell"], tone: ["dub feedback cloud"], groove: ["shadow FX pulse"] },
+      transitions: { sound: ["dub delay spill"], tone: ["tension filter close"], groove: ["subtractive outro"] },
+    },
+    notes: "Extended deep techno closing track in F minor, spacious warm pads, soft steady kick, deep sub pulse, dub chord echoes, gradually reducing percussion, long tape delay tails, low-pass filter slowly closing.",
+  },
+];
+
 export function getBlockLabel(index) {
   const start = index * 4 + 1;
   return `${start}-${start + 3}`;

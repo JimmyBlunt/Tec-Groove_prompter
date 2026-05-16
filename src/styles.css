@@ -467,6 +467,18 @@ textarea:focus {
   color: var(--text);
 }
 
+.primary-action {
+  min-height: 38px;
+  border: 1px solid rgba(110, 198, 255, 0.5);
+  border-radius: var(--radius);
+  background: rgba(110, 198, 255, 0.12);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 0 12px;
+}
+
 .section-list {
   display: grid;
   gap: 8px;
@@ -582,6 +594,14 @@ textarea:focus {
   margin-top: 16px;
 }
 
+.guided-box {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.025);
+  margin-top: 18px;
+  padding: 14px;
+}
+
 .assignment-section {
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -626,6 +646,69 @@ textarea:focus {
   color: var(--muted-2);
   font-size: 12px;
   font-style: normal;
+}
+
+.save-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.save-row input {
+  margin-top: 0;
+}
+
+.saved-list {
+  display: grid;
+  gap: 10px;
+}
+
+.saved-item {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.025);
+  padding: 12px;
+}
+
+.saved-item strong,
+.saved-item span {
+  display: block;
+}
+
+.saved-item span {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.load-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.load-actions button {
+  min-height: 30px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 0 9px;
+}
+
+.load-actions button:hover {
+  border-color: rgba(110, 198, 255, 0.5);
+  color: var(--text);
+}
+
+.empty-state {
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .prompt-panel {

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import {
   INSTRUMENTS,
+  JOURNEY_BLUEPRINTS,
   PROMPT_LANGUAGES,
   STRUCTURE_COLORS,
   TAG_GROUPS,
@@ -23,7 +24,9 @@ import {
   createDefaultArrangement,
   createDefaultStructure,
   createDefaultTrackRows,
+  createArrangementFromRanges,
   createInitialSelections,
+  createSelectionsFromMap,
   findInstrument,
   getBlockLabel,
   getRecommendations,
@@ -34,6 +37,15 @@ import {
 import { compilePromptBundle } from "./utils/promptCompiler.js";
 
 const defaultPreset = TRACK_PRESETS[0];
+const STORAGE_KEY = "groovePromptBuilder.savedPrompts";
+
+function loadSavedSnapshots() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
 
 function ToggleGroup({ label, value, options, onChange }) {
   return (
@@ -144,6 +156,13 @@ function App() {
   const [selectedCells, setSelectedCells] = useState([]);
   const [blockOverrides, setBlockOverrides] = useState({});
   const [revisionCounter, setRevisionCounter] = useState(1);
+  const [savedSnapshots, setSavedSnapshots] = useState(loadSavedSnapshots);
+  const [saveName, setSaveName] = useState("");
+  const [guided, setGuided] = useState({
+    vibe: "deep",
+    energy: "warm-up",
+    length: 64,
+  });
   const [activeSectionId, setActiveSectionId] = useState("intro");
   const [copied, setCopied] = useState("");
   const [openPromptPanels, setOpenPromptPanels] = useState({
@@ -200,6 +219,43 @@ function App() {
     setActiveSectionId("intro");
   };
 
+  const applyBlueprint = (blueprint) => {
+    setMeta((previous) => ({
+      ...previous,
+      ...blueprint.meta,
+      targetTool: previous.targetTool,
+      promptLanguage: previous.promptLanguage,
+    }));
+    setTrackRows(createDefaultTrackRows());
+    setStructure(blueprint.structure);
+    setArrangement(createArrangementFromRanges(blueprint.meta.length, blueprint.ranges));
+    setSelections(createSelectionsFromMap(blueprint.selections));
+    setBlockOverrides({});
+    setSelectedCells([]);
+    setNotes(blueprint.notes);
+    setActiveTrackId("bass");
+    setActiveSectionId(blueprint.structure[0]?.id || "intro");
+    setActiveCard("elements");
+  };
+
+  const applyGuidedBlueprint = () => {
+    const candidates = JOURNEY_BLUEPRINTS.filter((preset) => {
+      const text = `${preset.summary} ${preset.meta.energy} ${preset.meta.mood}`.toLowerCase();
+      const vibeMatch = guided.vibe === "deep" ? text.includes("deep") || text.includes("hypnotic") : text.includes(guided.vibe);
+      const energyMatch =
+        guided.energy === "warm-up"
+          ? text.includes("intro") || text.includes("warm") || text.includes("calm")
+          : guided.energy === "core"
+            ? text.includes("core") || text.includes("main") || text.includes("club")
+            : text.includes("closing") || text.includes("outro") || text.includes("horizon");
+      return vibeMatch && energyMatch;
+    });
+    const closest = [...(candidates.length ? candidates : JOURNEY_BLUEPRINTS)].sort(
+      (a, b) => Math.abs(a.meta.length - guided.length) - Math.abs(b.meta.length - guided.length)
+    )[0];
+    applyBlueprint(closest);
+  };
+
   const changeLength = (length) => {
     setMeta((previous) => ({ ...previous, length }));
     setTrackRows(createDefaultTrackRows());
@@ -210,6 +266,63 @@ function App() {
     setSelectedCells([]);
     setActiveTrackId("bass");
     setActiveSectionId("intro");
+  };
+
+  const persistSnapshots = (next) => {
+    setSavedSnapshots(next);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  };
+
+  const currentSnapshot = () => ({
+    id: crypto.randomUUID ? crypto.randomUUID() : `snapshot-${Date.now()}`,
+    name: saveName.trim() || `${meta.style} ${new Date().toLocaleString()}`,
+    createdAt: new Date().toISOString(),
+    meta,
+    structure,
+    arrangement,
+    selections,
+    trackRows,
+    notes,
+    blockOverrides,
+  });
+
+  const saveCurrentSnapshot = () => {
+    const snapshot = currentSnapshot();
+    persistSnapshots([snapshot, ...savedSnapshots]);
+    setSaveName("");
+    setActiveCard("saved");
+  };
+
+  const deleteSnapshot = (id) => {
+    persistSnapshots(savedSnapshots.filter((snapshot) => snapshot.id !== id));
+  };
+
+  const loadSnapshot = (snapshot, mode) => {
+    if (mode === "all") {
+      setMeta(snapshot.meta);
+      setTrackRows(snapshot.trackRows || createDefaultTrackRows());
+      setStructure(snapshot.structure);
+      setArrangement(snapshot.arrangement);
+      setSelections(snapshot.selections);
+      setNotes(snapshot.notes || "");
+      setBlockOverrides(snapshot.blockOverrides || {});
+    }
+    if (mode === "elements") {
+      setTrackRows(snapshot.trackRows || createDefaultTrackRows());
+      setSelections(snapshot.selections);
+      setBlockOverrides(snapshot.blockOverrides || {});
+    }
+    if (mode === "structure") {
+      setStructure(snapshot.structure);
+      setActiveSectionId(snapshot.structure[0]?.id || "intro");
+    }
+    if (mode === "structure-arrangement") {
+      setTrackRows(snapshot.trackRows || createDefaultTrackRows());
+      setStructure(snapshot.structure);
+      setArrangement(snapshot.arrangement);
+      setActiveSectionId(snapshot.structure[0]?.id || "intro");
+    }
+    setSelectedCells([]);
   };
 
   const selectedCellsForActiveTrack = selectedCells.filter((cell) => cell.rowId === activeTrackId);
@@ -441,6 +554,7 @@ function App() {
             { id: "setup", label: "Song Setup", icon: Music2 },
             { id: "structure", label: "Structure", icon: Layers3 },
             { id: "elements", label: "Elements", icon: CircleDot },
+            { id: "saved", label: "Saved", icon: Clipboard },
           ].map((item) => (
             <button
               className={activeCard === item.id ? "is-active" : ""}
@@ -462,6 +576,20 @@ function App() {
                 <strong>{preset.label}</strong>
                 <span>
                   {preset.bpm} BPM / {preset.energy}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="side-section">
+          <span className="side-label">Afterhours Blueprints</span>
+          <div className="preset-list blueprint-list">
+            {JOURNEY_BLUEPRINTS.map((preset) => (
+              <button key={preset.id} type="button" onClick={() => applyBlueprint(preset)}>
+                <strong>{preset.label}</strong>
+                <span>
+                  {preset.meta.bpm} BPM / {preset.meta.key}
                 </span>
               </button>
             ))}
@@ -604,6 +732,38 @@ function App() {
                 <ToggleGroup label="Target Tool" value={meta.targetTool} options={TARGET_TOOLS} onChange={(targetTool) => setMeta({ ...meta, targetTool })} />
                 <ToggleGroup label="Prompt Language" value={meta.promptLanguage} options={PROMPT_LANGUAGES} onChange={(promptLanguage) => setMeta({ ...meta, promptLanguage })} />
                 <ToggleGroup label="Vocal Mode" value={meta.vocalMode} options={VOCAL_MODES} onChange={(vocalMode) => setMeta({ ...meta, vocalMode })} />
+
+                <div className="guided-box">
+                  <div className="assignment-heading">
+                    <h3>Guided Track Builder</h3>
+                    <span>questions to matching blueprint</span>
+                  </div>
+                  <ToggleGroup
+                    label="Vibe"
+                    value={guided.vibe}
+                    options={["deep", "dub", "driving", "closing"]}
+                    onChange={(vibe) => setGuided((previous) => ({ ...previous, vibe }))}
+                  />
+                  <ToggleGroup
+                    label="Energy"
+                    value={guided.energy}
+                    options={[
+                      { id: "warm-up", label: "Warm-up" },
+                      { id: "core", label: "Core Groove" },
+                      { id: "closing", label: "Closing" },
+                    ]}
+                    onChange={(energy) => setGuided((previous) => ({ ...previous, energy }))}
+                  />
+                  <ToggleGroup
+                    label="Length"
+                    value={guided.length}
+                    options={TRACK_LENGTHS}
+                    onChange={(length) => setGuided((previous) => ({ ...previous, length }))}
+                  />
+                  <button className="primary-action" type="button" onClick={applyGuidedBlueprint}>
+                    Create Track From Guided Answers
+                  </button>
+                </div>
               </div>
             )}
 
@@ -730,6 +890,49 @@ function App() {
                     placeholder={isCellEditMode ? "Bar-specific notes for selected 4-bar block(s)." : "Optional: describe timing, melody, texture, or transition behavior."}
                   />
                 </label>
+              </div>
+            )}
+
+            {activeCard === "saved" && (
+              <div className="card-content">
+                <div className="panel-heading">
+                  <Clipboard size={18} />
+                  <div>
+                    <h2>Saved Prompts</h2>
+                    <p>Speichere komplette Projekte und lade später komplett oder nur einzelne Rollen zurück.</p>
+                  </div>
+                </div>
+
+                <div className="save-row">
+                  <input value={saveName} onChange={(event) => setSaveName(event.target.value)} placeholder="Name for this prompt snapshot" />
+                  <button className="primary-action" type="button" onClick={saveCurrentSnapshot}>
+                    Save Current
+                  </button>
+                </div>
+
+                <div className="saved-list">
+                  {savedSnapshots.length ? (
+                    savedSnapshots.map((snapshot) => (
+                      <section className="saved-item" key={snapshot.id}>
+                        <div>
+                          <strong>{snapshot.name}</strong>
+                          <span>
+                            {snapshot.meta?.bpm} BPM / {snapshot.meta?.key} / {new Date(snapshot.createdAt).toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="load-actions">
+                          <button type="button" onClick={() => loadSnapshot(snapshot, "all")}>All</button>
+                          <button type="button" onClick={() => loadSnapshot(snapshot, "elements")}>Elements</button>
+                          <button type="button" onClick={() => loadSnapshot(snapshot, "structure-arrangement")}>Structure + Arrangement</button>
+                          <button type="button" onClick={() => loadSnapshot(snapshot, "structure")}>Structure only</button>
+                          <button type="button" onClick={() => deleteSnapshot(snapshot.id)}>Delete</button>
+                        </div>
+                      </section>
+                    ))
+                  ) : (
+                    <p className="empty-state">No saved prompt snapshots yet.</p>
+                  )}
+                </div>
               </div>
             )}
           </div>
