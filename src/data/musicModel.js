@@ -358,6 +358,291 @@ export const TAG_GROUPS = {
   },
 };
 
+const EXTRA_TAG_GROUPS = {
+  kick: {
+    sound: [
+      e("808 low thump", "Longer rounded low drum character for softer deep sections"),
+      e("909 punch kick", "Classic punchy techno kick with defined mid transient"),
+      e("707 dry kick", "Dry vintage drum-machine kick with short body"),
+      e("distorted warehouse kick", "Saturated harder kick for driving club sections"),
+      e("rubbery analog kick", "Elastic analog kick tone with soft pitch movement"),
+      e("click-forward kick", "Kick with pronounced top click for small speaker translation"),
+    ],
+    tone: [
+      e("warm overdrive", "Analog-style drive adds body without harshness"),
+      e("tape-compressed kick", "Kick shaped by tape-like compression and rounded edges"),
+      e("low-pass softened kick", "Dark kick with reduced top-end"),
+      e("gated room kick", "Short room ambience cut into a rhythmic tail"),
+      e("sub-tail controlled", "Kick tail shortened to leave space for bass"),
+    ],
+    groove: [
+      e("skip-kick variation", "Occasional missing kick creates movement"),
+      e("false-drop kick cut", "Kick drops out just before the groove returns"),
+      e("intro pulse only", "Kick supports the intro without full energy"),
+      e("drop anchor kick", "Kick becomes the main structural anchor in the drop"),
+    ],
+  },
+  bass: {
+    sound: [
+      e("Juno-style bass", "Soft analog bass with smooth chorus-like width"),
+      e("SH-101-style sequence", "Classic mono synth sequence with simple hypnotic motion"),
+      e("Prophet-style warm bass", "Round poly-analog character used as bass texture"),
+      e("FM bass knock", "Digital FM-style bass with clean attack"),
+      e("square-wave bass", "Simple hollow bass tone with minimal harmonic movement"),
+      e("saw bass pulse", "Saw-based bass with filtered edge"),
+      e("resonant acid bass", "Acid-inspired resonance without becoming aggressive"),
+    ],
+    tone: [
+      e("low-pass filtered", "Bass brightness reduced by low-pass filtering"),
+      e("tape-warmed bass", "Bass has soft tape color and slight compression"),
+      e("delayed bass ghost", "Quiet delay reflections extend the bass rhythm"),
+      e("dreamy minor bass color", "Minor-key bass tone with emotional softness"),
+      e("intelligent bass variation", "Subtle pattern changes feel deliberate and musical"),
+      e("tricky filter accent", "Filter accents create clever rhythmic emphasis"),
+    ],
+    groove: [
+      e("one-bar loop mutation", "Small variation appears at the end of each bar loop"),
+      e("call-and-response bass", "Bass phrase answers itself with a second motif"),
+      e("sub shadow layer", "Hidden sub movement follows the main bass"),
+      e("late bass accent", "Bass note lands late for a laid-back pocket"),
+      e("16th-note pulse", "Fast repeated bass pulse with controlled density"),
+    ],
+  },
+  sub: {
+    sound: [
+      e("808 tuned sub", "Tuned 808-like sub layer matched to the key"),
+      e("pure sine sub", "Clean sine-wave low-end with no edge"),
+      e("analog sub oscillator", "Warm oscillator sub layer under the bass"),
+      e("dub sub swell", "Sub layer grows softly through dub-style space"),
+    ],
+    tone: [
+      e("invisible sub support", "Sub is felt more than heard"),
+      e("sidechain breathing", "Sub breathes around kick movement"),
+      e("short sub envelope", "Sub notes are clipped short for tight club mix"),
+      e("rounded sub decay", "Sub tail decays smoothly without boom"),
+    ],
+    groove: [
+      e("sub call response", "Sub answers the bassline in sparse moments"),
+      e("held sub tension", "Sustained sub creates tension in breakdowns"),
+      e("sub drop return", "Sub returns as a clear cue for the main groove"),
+    ],
+  },
+  hats: {
+    sound: [
+      e("909 closed hats", "Classic short closed hat pattern"),
+      e("909 open hat", "Classic open hat accent for techno/house offbeats"),
+      e("707 hats", "Dry vintage drum-machine hat texture"),
+      e("ride shimmer", "Subtle ride cymbal shimmer for late-section lift"),
+      e("tick hats", "Very small ticking hat texture"),
+      e("noisy hats", "Noise-based hat layer with synthetic edge"),
+      e("metallic hat grains", "Tiny metallic hat fragments"),
+    ],
+    tone: [
+      e("crisp top-end", "Bright clean high-frequency definition"),
+      e("dusty hat layer", "Slightly dirty or sampled hat texture"),
+      e("low-passed hats", "Darker hats for restrained sections"),
+      e("tape-softened hats", "Top-end softened by tape-style color"),
+      e("air-band shimmer", "Light airy high-end sheen"),
+    ],
+    groove: [
+      e("16th hat engine", "Continuous 16th hat grid drives the groove"),
+      e("swinged open hats", "Open hats lean with swing timing"),
+      e("hat mute break", "Hats drop out to open space"),
+      e("hat roll pickup", "Short roll leads into next section"),
+      e("shadow hat shuffle", "Quiet shuffle under the main hat pattern"),
+    ],
+  },
+  perc: {
+    sound: [
+      e("clave hits", "Wooden clave accents for syncopated groove"),
+      e("bongo taps", "Small hand-drum taps for organic detail"),
+      e("conga ghost hits", "Quiet conga tones used as background rhythm"),
+      e("909 rimshot", "Classic sharp rimshot for techno accents"),
+      e("808 cowbell", "Metallic cowbell tone used sparingly"),
+      e("noise snare tick", "Tiny snare/noise tick for texture"),
+      e("modular blips", "Small modular bleeps acting as percussion"),
+    ],
+    tone: [
+      e("spring reverb percussion", "Percussion colored by spring-like reverb"),
+      e("dub-delayed percussion", "Percussion taps bounce through dub delay"),
+      e("bit-reduced clicks", "Clicks have subtle digital reduction"),
+      e("wooden dry tone", "Natural dry wooden percussion character"),
+      e("metallic resonant tone", "Percussion rings with metallic resonance"),
+    ],
+    groove: [
+      e("offbeat click grid", "Clicks sit around the offbeats"),
+      e("polyrhythmic taps", "Percussion implies a second rhythm layer"),
+      e("rotating percussion loop", "Percussion accents rotate over time"),
+      e("minimal fill fragments", "Tiny fills appear without breaking the groove"),
+      e("call-response percussion", "Percussion phrase answers itself"),
+    ],
+  },
+  clap: {
+    sound: [
+      e("909 clap", "Classic techno clap layer"),
+      e("808 snare-clap", "Vintage snare/clap hybrid"),
+      e("noise clap", "Synthetic noise-based clap"),
+      e("rim-clap stack", "Clap layered with rimshot click"),
+      e("tiny clap tick", "Very short clap detail for minimal patterns"),
+    ],
+    tone: [
+      e("plate reverb clap", "Clap with plate-style reverb"),
+      e("gated reverb clap", "Reverb tail gated into rhythmic shape"),
+      e("tape slap clap", "Short slapback delay colors the clap"),
+      e("dark filtered clap", "Clap is filtered darker for deep sections"),
+    ],
+    groove: [
+      e("clap skip variation", "Occasional clap omission creates motion"),
+      e("pre-drop clap lift", "Clap activity increases before drop"),
+      e("shadow clap layer", "Quiet clap layer below main percussion"),
+    ],
+  },
+  synth: {
+    sound: [
+      e("TB-303 acid line", "Classic resonant acid synth pattern"),
+      e("Moog lead pulse", "Warm mono lead pulse with rounded tone"),
+      e("Prophet-5 stab", "Warm vintage poly synth stab"),
+      e("Access Virus pluck", "Digital club pluck with clean edge"),
+      e("FM bell pluck", "Digital bell-like pluck for minimal accents"),
+      e("modular bleep sequence", "Small modular bleeps in repeating pattern"),
+      e("granular synth flecks", "Tiny granular synth fragments"),
+    ],
+    tone: [
+      e("melancholic two-note melody", "Simple two-note melodic figure with minor emotion"),
+      e("dreamy filtered melody", "Soft melodic phrase shaped by filter"),
+      e("intelligent micro-melody", "Subtle clever melodic movement without pop lead"),
+      e("tricky rhythmic motif", "Synth motif feels rhythmically clever"),
+      e("delayed synth pattern", "Delay becomes part of the synth rhythm"),
+      e("tape-warped synth", "Slight pitch and timing instability"),
+    ],
+    groove: [
+      e("upward arpeggiator", "Arp rises through notes repeatedly"),
+      e("downward arpeggiator", "Arp falls through notes repeatedly"),
+      e("random arpeggiator", "Arp pattern feels semi-random and modular"),
+      e("gated synth rhythm", "Synth chopped rhythmically like a gate"),
+      e("snips and chops", "Short synth snippets cut into rhythm"),
+      e("shadow modulation", "Modulation sits quietly behind the main groove"),
+    ],
+  },
+  vocals: {
+    sound: [
+      e("granular vocal fragments", "Micro-sliced vocals like digital grains"),
+      e("vocoder riser voice", "Rising vocoder-based voice transition"),
+      e("robot voice stabs", "Robotic voice hits used as rhythm"),
+      e("formant percussion", "Formant-shaped voice fragments used as percussion"),
+      e("whisper texture bed", "Whisper layer acts as atmosphere"),
+    ],
+    tone: [
+      e("low-mixed vocal dust", "Vocal texture is barely audible and atmospheric"),
+      e("tape-delayed voice", "Voice fragment repeats through tape-style delay"),
+      e("metallic vocoder tone", "Vocoder has metallic synthetic edge"),
+      e("breathy close texture", "Voice feels close but not lyrical"),
+      e("robotic formant shift", "Voice is transformed into machine-like timbre"),
+    ],
+    groove: [
+      e("vocal snips and chops", "Tiny vocal cuts act as rhythmic material"),
+      e("stuttered breath rhythm", "Breath fragments repeat in rhythm"),
+      e("call-response vocal hits", "Short vocal hits answer each other"),
+      e("pre-drop vocal tease", "Small vocal fragment cues the drop"),
+      e("offbeat vowel groove", "Vowel hits sit around offbeats"),
+    ],
+  },
+  chords: {
+    sound: [
+      e("Juno chord haze", "Warm chorus-like analog chord haze"),
+      e("Prophet chord pad", "Vintage poly synth chord body"),
+      e("minor seventh stabs", "Deep house-influenced minor seventh chord hits"),
+      e("FM glass chords", "Clear digital chord texture"),
+      e("organ-like dub stabs", "Organ-colored chord stabs with delay"),
+    ],
+    tone: [
+      e("tape-delayed chords", "Chords repeat through warm tape delay"),
+      e("filtered melancholic chords", "Dark filtered harmonic movement"),
+      e("dreamy suspended harmony", "Suspended unresolved harmonic feel"),
+      e("intelligent chord inversion", "Chord voicing feels subtle and musical"),
+      e("wide chorus chords", "Chords have gentle chorus width"),
+    ],
+    groove: [
+      e("offbeat dub stabs", "Chord hits placed on offbeats"),
+      e("chord stab echo rhythm", "Delay repeats create the rhythm"),
+      e("slow chord automation", "Chord tone evolves slowly through filters"),
+      e("second-groove chord variation", "Chord pattern changes in later groove"),
+    ],
+  },
+  pads: {
+    sound: [
+      e("Juno-style pad", "Warm chorus pad with vintage color"),
+      e("Prophet-style pad", "Lush analog poly pad"),
+      e("granular pad mist", "Granular atmospheric pad texture"),
+      e("noisy air pad", "Noise-based airy pad layer"),
+      e("dark drone bed", "Low dark sustained atmosphere"),
+    ],
+    tone: [
+      e("melancholic atmosphere", "Subtle sad emotional atmosphere"),
+      e("dreamy stereo wash", "Wide soft stereo pad texture"),
+      e("filtered tape haze", "Pad filtered and colored by tape-like softness"),
+      e("modulated pad shimmer", "Slow modulation gives shimmer"),
+      e("distant room pad", "Pad feels far back in the mix"),
+    ],
+    groove: [
+      e("pad swell into break", "Pad rises into breakdown"),
+      e("subtle LFO motion", "Slow LFO movement keeps pad alive"),
+      e("breathing sidechain pad", "Pad ducks gently with the kick"),
+      e("long-form evolution", "Pad changes gradually over many bars"),
+    ],
+  },
+  fx: {
+    sound: [
+      e("spring reverb splash", "Short spring-like splash for dub texture"),
+      e("bitcrushed delay", "Delay repeats have digital degradation"),
+      e("granular spray", "Granular particles scatter through the mix"),
+      e("vinyl crackle bed", "Vinyl crackle used as texture"),
+      e("modular noise burst", "Short modular noise accent"),
+    ],
+    tone: [
+      e("dub feedback cloud", "Delay feedback creates a cloud around elements"),
+      e("filtered tape echo", "Tape echo filtered dark or bright over time"),
+      e("phaser movement", "Phase modulation adds motion"),
+      e("flanger sweep", "Flanger sweep creates metallic movement"),
+      e("space echo color", "Classic dub echo coloration"),
+    ],
+    groove: [
+      e("two-beat effect throw", "Short burst of delay or reverb over two beats"),
+      e("bar-end glitch", "Glitch appears at the end of the bar"),
+      e("shadow FX pulse", "Quiet FX pulse supports rhythm"),
+      e("automation punctuation", "Effect movement marks phrase boundaries"),
+    ],
+  },
+  transitions: {
+    sound: [
+      e("impact hit", "Short impact marks a section change"),
+      e("sub drop", "Low falling effect at transition point"),
+      e("white-noise sweep", "White noise sweeps into the next section"),
+      e("reverse cymbal", "Reversed cymbal builds into a transition"),
+      e("dub delay spill", "Delay spills over the section boundary"),
+    ],
+    tone: [
+      e("tension filter close", "Filter closes to reduce energy before the next section"),
+      e("wide stereo lift", "Stereo width increases before transition"),
+      e("dark breakdown wash", "Dark wash opens space in breakdown"),
+      e("tape stop moment", "Brief tape-stop style transition"),
+    ],
+    groove: [
+      e("one-bar turnaround", "Final bar changes to lead into next section"),
+      e("two-bar transition fill", "Two-bar fill connects sections"),
+      e("percussion drop-out", "Percussion cuts out for transition impact"),
+      e("bass return cue", "Bass returns as the signal for groove return"),
+      e("delayed drop entry", "Drop enters slightly after expected point"),
+    ],
+  },
+};
+
+Object.entries(EXTRA_TAG_GROUPS).forEach(([instrumentId, groups]) => {
+  Object.entries(groups).forEach(([group, tags]) => {
+    TAG_GROUPS[instrumentId][group].push(...tags);
+  });
+});
+
 export const STRUCTURE_TERMS = [
   "DJ-friendly intro",
   "additive arrangement",

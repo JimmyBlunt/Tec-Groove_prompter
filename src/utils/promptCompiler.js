@@ -29,12 +29,25 @@ function rowsOrDefaults(trackRows) {
       }));
 }
 
-function instrumentLine(row, selections, arrangement) {
+function rowTags(row, selections, blockOverrides = {}) {
+  const base = selectedTagsForRow(selections, row.id);
+  const overrides = Object.values(blockOverrides[row.id] || {}).flatMap((override) => [
+    ...(override.sound || []),
+    ...(override.tone || []),
+    ...(override.groove || []),
+  ]);
+  return unique([...base, ...overrides]);
+}
+
+function instrumentLine(row, selections, arrangement, blockOverrides = {}) {
   const activeBlocks = getActiveBlocks(arrangement[row.id] || []);
   const selected = selections[row.id] || { sound: [], tone: [], groove: [], notes: "" };
-  const tags = [...selected.sound, ...selected.tone, ...selected.groove];
+  const tags = rowTags(row, selections, blockOverrides);
+  const customBlocks = Object.entries(blockOverrides[row.id] || {})
+    .map(([blockIndex, override]) => `${getBlockLabel(Number(blockIndex))} #${override.rev}: ${formatList([...(override.sound || []), ...(override.tone || []), ...(override.groove || [])])}`)
+    .join(" | ");
 
-  if (!tags.length && !activeBlocks.length && !selected.notes) {
+  if (!tags.length && !activeBlocks.length && !selected.notes && !customBlocks) {
     return null;
   }
 
@@ -46,6 +59,9 @@ function instrumentLine(row, selections, arrangement) {
   if (selected.notes) {
     parts.push(`notes: ${selected.notes}`);
   }
+  if (customBlocks) {
+    parts.push(`custom blocks: ${customBlocks}`);
+  }
 
   return parts.join("; ");
 }
@@ -55,12 +71,12 @@ function selectedTagsForRow(selections, rowId) {
   return [...selected.sound, ...selected.tone, ...selected.groove];
 }
 
-function selectedTagsByPriority(selections, trackRows) {
+function selectedTagsByPriority(selections, trackRows, blockOverrides = {}) {
   const priority = ["kick", "bass", "sub", "hats", "perc", "clap", "chords", "synth", "pads", "vocals", "fx", "transitions"];
   const rows = rowsOrDefaults(trackRows);
   return unique(
     priority.flatMap((instrumentId) =>
-      rows.filter((row) => row.instrumentId === instrumentId).flatMap((row) => selectedTagsForRow(selections, row.id))
+      rows.filter((row) => row.instrumentId === instrumentId).flatMap((row) => rowTags(row, selections, blockOverrides))
     )
   );
 }
@@ -113,20 +129,23 @@ function sectionActiveInstruments(section, arrangement, trackRows) {
   }).map((row) => rowLabel(row).toLowerCase());
 }
 
-function sectionTagHints(section, selections, arrangement, trackRows) {
+function sectionTagHints(section, selections, arrangement, trackRows, blockOverrides = {}) {
   const startBlock = Math.floor((section.start - 1) / 4);
   const endBlock = Math.floor((section.end - 1) / 4);
   const tags = unique(rowsOrDefaults(trackRows).flatMap((row) => {
     const blocks = arrangement[row.id] || [];
     const active = blocks.slice(startBlock, endBlock + 1).some(Boolean);
-    return active ? selectedTagsForRow(selections, row.id) : [];
+    const overrideTags = Object.entries(blockOverrides[row.id] || {})
+      .filter(([blockIndex]) => Number(blockIndex) >= startBlock && Number(blockIndex) <= endBlock)
+      .flatMap(([, override]) => [...(override.sound || []), ...(override.tone || []), ...(override.groove || [])]);
+    return active ? unique([...selectedTagsForRow(selections, row.id), ...overrideTags]) : overrideTags;
   }));
   return tags.slice(0, 5);
 }
 
-export function compileSunoStylePrompt({ meta, selections, arrangement, trackRows }) {
+export function compileSunoStylePrompt({ meta, selections, arrangement, trackRows, blockOverrides }) {
   const vocalMode = vocalModeFor(meta);
-  const selectedTags = selectedTagsByPriority(selections, trackRows);
+  const selectedTags = selectedTagsByPriority(selections, trackRows, blockOverrides);
   const activeLabels = activeInstrumentLabels(arrangement, trackRows);
   const base = [
     meta.style,
@@ -151,7 +170,7 @@ export function compileSunoStylePrompt({ meta, selections, arrangement, trackRow
   return compactJoin(base, 940);
 }
 
-export function compileSunoLyricsPrompt({ meta, structure, selections, arrangement, notes, trackRows }) {
+export function compileSunoLyricsPrompt({ meta, structure, selections, arrangement, notes, trackRows, blockOverrides }) {
   const lines = [];
   const vocalMode = vocalModeFor(meta);
 
@@ -161,7 +180,7 @@ export function compileSunoLyricsPrompt({ meta, structure, selections, arrangeme
 
   structure.forEach((section) => {
     const active = sectionActiveInstruments(section, arrangement, trackRows);
-    const hints = sectionTagHints(section, selections, arrangement, trackRows);
+    const hints = sectionTagHints(section, selections, arrangement, trackRows, blockOverrides);
     lines.push(sectionTag(section));
     lines.push(vocalCueForSection(section, meta));
     lines.push(`Bars ${section.start}-${section.end}: ${section.intent}`);
@@ -185,7 +204,7 @@ export function compileSunoExcludePrompt({ meta }) {
   return unique([...DEFAULT_EXCLUDES, ...vocalMode.excludeCue.split(",").map((item) => item.trim())]).join(", ");
 }
 
-export function compileBlueprintPrompt({ meta, structure, selections, arrangement, notes, trackRows }) {
+export function compileBlueprintPrompt({ meta, structure, selections, arrangement, notes, trackRows, blockOverrides }) {
   const lines = [];
 
   lines.push("[TRACK IDENTITY]");
@@ -200,7 +219,7 @@ export function compileBlueprintPrompt({ meta, structure, selections, arrangemen
   lines.push("");
 
   lines.push("[INSTRUMENT LAYERS]");
-  rowsOrDefaults(trackRows).map((row) => instrumentLine(row, selections, arrangement))
+  rowsOrDefaults(trackRows).map((row) => instrumentLine(row, selections, arrangement, blockOverrides))
     .filter(Boolean)
     .forEach((line) => lines.push(line));
   lines.push("");

@@ -141,6 +141,9 @@ function App() {
   const [activeTrackId, setActiveTrackId] = useState("bass");
   const [activeTagGroup, setActiveTagGroup] = useState("sound");
   const [rightPanelTab, setRightPanelTab] = useState("prompt");
+  const [selectedCells, setSelectedCells] = useState([]);
+  const [blockOverrides, setBlockOverrides] = useState({});
+  const [revisionCounter, setRevisionCounter] = useState(1);
   const [activeSectionId, setActiveSectionId] = useState("intro");
   const [copied, setCopied] = useState("");
   const [openPromptPanels, setOpenPromptPanels] = useState({
@@ -180,8 +183,8 @@ function App() {
   }, [arrangement, blockCount, trackRows]);
 
   const prompts = useMemo(
-    () => compilePromptBundle({ meta, structure, selections, arrangement, notes, trackRows }),
-    [meta, structure, selections, arrangement, notes, trackRows]
+    () => compilePromptBundle({ meta, structure, selections, arrangement, notes, trackRows, blockOverrides }),
+    [meta, structure, selections, arrangement, notes, trackRows, blockOverrides]
   );
   const styleCharCount = prompts.style.length;
 
@@ -191,6 +194,8 @@ function App() {
     setStructure(createDefaultStructure(preset.length));
     setArrangement(createDefaultArrangement(preset.length));
     setSelections(createInitialSelections());
+    setBlockOverrides({});
+    setSelectedCells([]);
     setActiveTrackId("bass");
     setActiveSectionId("intro");
   };
@@ -201,12 +206,64 @@ function App() {
     setStructure(createDefaultStructure(length));
     setArrangement(createDefaultArrangement(length));
     setSelections(createInitialSelections());
+    setBlockOverrides({});
+    setSelectedCells([]);
     setActiveTrackId("bass");
     setActiveSectionId("intro");
   };
 
+  const selectedCellsForActiveTrack = selectedCells.filter((cell) => cell.rowId === activeTrackId);
+  const isCellEditMode = selectedCellsForActiveTrack.length > 0;
+
+  const effectiveSelectionForCell = (rowId, blockIndex) => {
+    const rowSelection = selections[rowId] || { sound: [], tone: [], groove: [], notes: "" };
+    const override = blockOverrides[rowId]?.[blockIndex];
+    return override || rowSelection;
+  };
+
+  const selectedTagsForGroup = (group) => {
+    if (!isCellEditMode) return selections[activeTrackId][group];
+    return [
+      ...new Set(
+        selectedCellsForActiveTrack.flatMap((cell) => effectiveSelectionForCell(cell.rowId, cell.blockIndex)[group] || [])
+      ),
+    ];
+  };
+
+  const applyToSelectedCells = (updater) => {
+    setBlockOverrides((previous) => {
+      const next = { ...previous };
+      selectedCellsForActiveTrack.forEach((cell) => {
+        const current = effectiveSelectionForCell(cell.rowId, cell.blockIndex);
+        next[cell.rowId] = { ...(next[cell.rowId] || {}) };
+        next[cell.rowId][cell.blockIndex] = updater({
+          sound: [...(current.sound || [])],
+          tone: [...(current.tone || [])],
+          groove: [...(current.groove || [])],
+          notes: current.notes || "",
+          rev: current.rev,
+        });
+      });
+      return next;
+    });
+  };
+
   const updateSelection = (group, tagValue) => {
     const label = tagLabel(tagValue);
+    if (isCellEditMode) {
+      const rev = revisionCounter;
+      applyToSelectedCells((current) => {
+        const exists = current[group].includes(label);
+        return {
+          ...current,
+          [group]: exists ? current[group].filter((item) => item !== label) : [...current[group], label],
+          rev,
+        };
+      });
+      setRevisionCounter((value) => value + 1);
+      return;
+    }
+
     setSelections((previous) => {
       const current = previous[activeTrackId][group];
       const nextGroup = current.includes(label) ? current.filter((item) => item !== label) : [...current, label];
@@ -221,6 +278,17 @@ function App() {
   };
 
   const removeSelection = (group, tag) => {
+    if (isCellEditMode) {
+      const rev = revisionCounter;
+      applyToSelectedCells((current) => ({
+        ...current,
+        [group]: current[group].filter((item) => item !== tag),
+        rev,
+      }));
+      setRevisionCounter((value) => value + 1);
+      return;
+    }
+
     setSelections((previous) => ({
       ...previous,
       [activeTrackId]: {
@@ -230,11 +298,62 @@ function App() {
     }));
   };
 
-  const toggleArrangement = (rowId, blockIndex) => {
+  const selectArrangementCell = (rowId, blockIndex, event) => {
+    setActiveTrackId(rowId);
+    setActiveCard("elements");
+    const nextCell = { rowId, blockIndex };
+    setSelectedCells((previous) => {
+      if (event.shiftKey) {
+        const exists = previous.some((cell) => cell.rowId === rowId && cell.blockIndex === blockIndex);
+        return exists
+          ? previous.filter((cell) => !(cell.rowId === rowId && cell.blockIndex === blockIndex))
+          : [...previous, nextCell];
+      }
+      return [nextCell];
+    });
+  };
+
+  const copyPreviousCellSettings = (rowId, blockIndex) => {
+    const previousIndex = Math.max(0, blockIndex - 1);
+    const previous = blockOverrides[rowId]?.[previousIndex] || selections[rowId];
+    return {
+      sound: [...(previous.sound || [])],
+      tone: [...(previous.tone || [])],
+      groove: [...(previous.groove || [])],
+      notes: previous.notes || "",
+      rev: revisionCounter,
+    };
+  };
+
+  const toggleArrangementByDoubleClick = (rowId, blockIndex) => {
     setArrangement((previous) => ({
       ...previous,
-      [rowId]: previous[rowId].map((active, index) => (index === blockIndex ? !active : active)),
+      [rowId]: previous[rowId].map((active, index) => (index === blockIndex ? false : active)),
     }));
+    if (!arrangement[rowId][blockIndex]) {
+      setArrangement((previous) => ({
+        ...previous,
+        [rowId]: previous[rowId].map((active, index) => (index === blockIndex ? true : active)),
+      }));
+      setBlockOverrides((previous) => ({
+        ...previous,
+        [rowId]: {
+          ...(previous[rowId] || {}),
+          [blockIndex]: copyPreviousCellSettings(rowId, blockIndex),
+        },
+      }));
+      setRevisionCounter((value) => value + 1);
+    } else {
+      setBlockOverrides((previous) => {
+        const next = { ...previous };
+        if (next[rowId]) {
+          next[rowId] = { ...next[rowId] };
+          delete next[rowId][blockIndex];
+        }
+        return next;
+      });
+    }
+    setSelectedCells([{ rowId, blockIndex }]);
   };
 
   const quickApplySection = () => {
@@ -419,7 +538,9 @@ function App() {
                   const alpha = active ? 0.32 + energy[blockIndex] * 0.64 : 0.05 + energy[blockIndex] * 0.15;
                   return (
                     <button
-                      className={`grid-cell ${active ? "is-on" : ""}`}
+                      className={`grid-cell ${active ? "is-on" : ""} ${
+                        selectedCells.some((cell) => cell.rowId === row.id && cell.blockIndex === blockIndex) ? "is-selected" : ""
+                      } ${blockOverrides[row.id]?.[blockIndex] ? "has-override" : ""}`}
                       key={blockIndex}
                       style={{
                         "--instrument": instrument.color,
@@ -427,9 +548,12 @@ function App() {
                         opacity: focused ? 1 : 0.28,
                       }}
                       type="button"
-                      onClick={() => toggleArrangement(row.id, blockIndex)}
+                      onClick={(event) => selectArrangementCell(row.id, blockIndex, event)}
+                      onDoubleClick={() => toggleArrangementByDoubleClick(row.id, blockIndex)}
                       aria-label={`${row.label} bars ${getBlockLabel(blockIndex)}`}
-                    />
+                    >
+                      {blockOverrides[row.id]?.[blockIndex]?.rev && <em>{blockOverrides[row.id][blockIndex].rev}</em>}
+                    </button>
                   );
                 })}
               </div>
@@ -551,6 +675,17 @@ function App() {
                     Add {activeTrack.label} to {activeSection.label}
                   </button>
                   <span>Focused section: {activeSection.label} / bars {activeSection.start}-{activeSection.end}</span>
+                  {isCellEditMode && (
+                    <span className="selected-bars">
+                      Selected bars:{" "}
+                      {selectedCellsForActiveTrack
+                        .map((cell) => {
+                          const override = blockOverrides[cell.rowId]?.[cell.blockIndex];
+                          return `${getBlockLabel(cell.blockIndex)}${override?.rev ? ` #${override.rev}` : ""}`;
+                        })
+                        .join(", ")}
+                    </span>
+                  )}
                 </div>
 
                 <div className="assignment-grid">
@@ -558,7 +693,7 @@ function App() {
                     <AssignmentSection
                       key={group}
                       group={group}
-                      tags={selections[activeTrackId][group]}
+                      tags={selectedTagsForGroup(group)}
                       onFocus={() => {
                         setActiveTagGroup(group);
                         setRightPanelTab("effects");
@@ -571,17 +706,28 @@ function App() {
                 <label className="notes-field">
                   Instrument notes
                   <textarea
-                    value={selections[activeTrackId].notes}
-                    onChange={(event) =>
+                    value={
+                      isCellEditMode
+                        ? effectiveSelectionForCell(selectedCellsForActiveTrack[0].rowId, selectedCellsForActiveTrack[0].blockIndex).notes
+                        : selections[activeTrackId].notes
+                    }
+                    onChange={(event) => {
+                      if (isCellEditMode) {
+                        const nextValue = event.target.value;
+                        const rev = revisionCounter;
+                        applyToSelectedCells((current) => ({ ...current, notes: nextValue, rev }));
+                        setRevisionCounter((value) => value + 1);
+                        return;
+                      }
                       setSelections((previous) => ({
                         ...previous,
                         [activeTrackId]: {
                           ...previous[activeTrackId],
                           notes: event.target.value,
                         },
-                      }))
-                    }
-                    placeholder="Optional: describe timing, melody, texture, or transition behavior."
+                      }));
+                    }}
+                    placeholder={isCellEditMode ? "Bar-specific notes for selected 4-bar block(s)." : "Optional: describe timing, melody, texture, or transition behavior."}
                   />
                 </label>
               </div>
@@ -671,7 +817,7 @@ function App() {
                 </div>
                 <EffectTable
                   tags={TAG_GROUPS[activeInstrument][activeTagGroup]}
-                  selectedTags={selections[activeTrackId][activeTagGroup]}
+                  selectedTags={selectedTagsForGroup(activeTagGroup)}
                   recommendations={recommendations}
                   onAdd={(tag) => updateSelection(activeTagGroup, tag)}
                 />
