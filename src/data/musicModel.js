@@ -180,6 +180,256 @@ export const CHARACTERISTIC_OPTIONS = {
   ],
 };
 
+export const GUIDED_BUILDER_QUESTIONS = [
+  {
+    id: "styleCharacter",
+    label: "Style / Character",
+    prompt: "What should the track feel like at the highest level?",
+    options: [
+      {
+        id: "minimal-reduced",
+        label: "Minimal / Reduced",
+        description: "Few elements, lots of space, every sound carries weight.",
+        blueprint: "opening-drift",
+        meta: { energy: "reduced, minimal, controlled", groove: "minimal loop evolution" },
+        tags: { kick: { groove: ["stripped-back groove"] }, perc: { groove: ["minimal fill fragments"] }, fx: { groove: ["shadow FX pulse"] } },
+      },
+      {
+        id: "driving-club",
+        label: "Driving / Club",
+        description: "More direct kick, tighter hats, rolling low-end and clean momentum.",
+        blueprint: "night-architecture",
+        meta: { energy: "driving club momentum", groove: "tight machine funk" },
+        tags: { kick: { sound: ["909 punch kick"], tone: ["clicky attack"] }, hats: { groove: ["16th hat engine"] }, bass: { sound: ["rolling bassline"] } },
+      },
+      {
+        id: "hypnotic-repetitive",
+        label: "Hypnotic / Repetitive",
+        description: "Long evolving repetition, small changes and meditative flow.",
+        blueprint: "deep-current",
+        meta: { energy: "long hypnotic core", groove: "long evolving groove" },
+        tags: { bass: { groove: ["hypnotic bass loop"] }, pads: { groove: ["long-form evolution"] }, fx: { tone: ["dub feedback cloud"] } },
+      },
+      {
+        id: "warm-dub",
+        label: "Warm Dub / Spacious",
+        description: "Dub chords, tape delay, warm bass and a smoky afterhours space.",
+        blueprint: "first-pulse",
+        meta: { energy: "warm spacious dub pulse", groove: "steady dub pulse" },
+        tags: { chords: { sound: ["dub chord stabs"], tone: ["tape-delayed chords"] }, fx: { sound: ["tape delay feedback"] } },
+      },
+      {
+        id: "dark-afterhours",
+        label: "Dark Afterhours",
+        description: "Low light, deep room, restrained emotion and darker harmonics.",
+        blueprint: "low-light-motion",
+        meta: { energy: "dark afterhours flow", groove: "sub-driven hypnotic flow" },
+        tags: { pads: { sound: ["dark drone bed"] }, chords: { tone: ["filtered melancholic chords"] }, bass: { tone: ["low-pass filtered"] } },
+      },
+    ],
+  },
+  {
+    id: "arrangementLogic",
+    label: "Arrangement Logic",
+    prompt: "How should the track build and release tension?",
+    options: [
+      {
+        id: "additive",
+        label: "Slow Additive Build",
+        description: "Start sparse and add kick, bass, hats, perc, chords and FX step by step.",
+        tags: { chords: { groove: ["additive arrangement"] }, transitions: { groove: ["energy staircase"] } },
+        note: "Use an additive arrangement: introduce one meaningful element every 8 or 16 bars.",
+      },
+      {
+        id: "subtractive",
+        label: "Subtractive / Mix-Out",
+        description: "Begin fuller, remove elements for space, then leave delay/pads behind.",
+        tags: { transitions: { groove: ["subtractive outro"] }, hats: { groove: ["hat mute break"] }, sub: { groove: ["bass mute"] } },
+        note: "Use subtractive tension: remove hats, bass or kick to make space instead of creating a dramatic drop.",
+      },
+      {
+        id: "loop-evolution",
+        label: "Loop Evolution",
+        description: "One core groove evolves via automation, micro-variation and FX movement.",
+        tags: { synth: { groove: ["loop evolution"] }, bass: { groove: ["one-bar loop mutation"] }, pads: { groove: ["long-form evolution"] } },
+        note: "Keep the core loop stable and create motion through filter, delay feedback and tiny pattern changes.",
+      },
+      {
+        id: "breakdown-return",
+        label: "Breakdown Return",
+        description: "Mute bass/kick in the break, let FX breathe, then return with groove.",
+        tags: { transitions: { groove: ["groove return"] }, fx: { sound: ["reverb swell"] }, bass: { groove: ["bass mute"] } },
+        note: "Use a central breakdown with bass mute, reverb swell and restrained groove return.",
+      },
+    ],
+  },
+  {
+    id: "grooveFocus",
+    label: "Groove Focus",
+    prompt: "Which element should carry the groove?",
+    options: [
+      {
+        id: "perc-clicks",
+        label: "Percussion / Clicks",
+        description: "Rim clicks, metallic ticks, congas and rotating percussion do the work.",
+        tags: { perc: { sound: ["rim clicks", "metallic ticks", "conga ghost hits"], groove: ["rotating percussion loop"] } },
+      },
+      {
+        id: "bass-led",
+        label: "Bass-Led",
+        description: "Bass/sub interaction is the main hook, with drums supporting.",
+        tags: { bass: { sound: ["rolling bassline"], groove: ["call-and-response bass"] }, sub: { groove: ["locked with kick"] } },
+      },
+      {
+        id: "chord-delay",
+        label: "Chord Delay Groove",
+        description: "Dub chord echo repeats become rhythmic material.",
+        tags: { chords: { groove: ["chord stab echo rhythm"], tone: ["tape-delayed chords"] }, fx: { tone: ["dub feedback cloud"] } },
+      },
+      {
+        id: "hat-shaker",
+        label: "Hat / Shaker Motion",
+        description: "Shuffled hats and shaker movement create the forward flow.",
+        tags: { hats: { sound: ["shuffled hats", "909 open hat"], groove: ["shaker shuffle", "hat tension lift"] } },
+      },
+      {
+        id: "sparse-pulse",
+        label: "Sparse Pulse",
+        description: "Very few rhythmic parts, mostly kick, sub and atmosphere.",
+        tags: { kick: { groove: ["intro pulse only"] }, sub: { tone: ["invisible sub support"] }, pads: { sound: ["dark drone bed"] } },
+      },
+    ],
+  },
+  {
+    id: "lowEnd",
+    label: "Low-End Relation",
+    prompt: "How should kick, bass and sub work together?",
+    options: [
+      {
+        id: "kick-bass-locked",
+        label: "Kick/Bass Locked",
+        description: "Tight club low-end, sidechain breathing and clear groove pocket.",
+        tags: { kick: { groove: ["groove pocket"] }, bass: { tone: ["sidechained bass"] }, sub: { groove: ["locked with kick"] } },
+      },
+      {
+        id: "warm-rounded",
+        label: "Warm Rounded Bass",
+        description: "Soft analog bass with deep but non-aggressive low-end.",
+        tags: { bass: { sound: ["Moog-style bass", "deep rounded bass"], tone: ["warm analog bass"] }, sub: { tone: ["soft low-end bloom"] } },
+      },
+      {
+        id: "sub-pressure",
+        label: "Sub Pressure",
+        description: "Sub is felt strongly while the rest stays spacious.",
+        tags: { sub: { sound: ["pure sine sub", "sub bass pulse"], tone: ["controlled sub pressure"] }, kick: { tone: ["sub-tail controlled"] } },
+      },
+      {
+        id: "filtered-dub-pulse",
+        label: "Filtered Dub Pulse",
+        description: "Bass and sub move through filter automation and delay ghosts.",
+        tags: { bass: { sound: ["filtered bass pulse"], tone: ["modulated filter bass", "delayed bass ghost"] } },
+      },
+    ],
+  },
+  {
+    id: "harmonicSpace",
+    label: "Chords / Atmosphere",
+    prompt: "What harmonic or atmospheric layer should define the track?",
+    options: [
+      {
+        id: "dub-stabs",
+        label: "Dub Chord Stabs",
+        description: "Muted chord stabs, tape delay and filtered echo tails.",
+        tags: { chords: { sound: ["dub chord stabs"], tone: ["tape-delayed chords"], groove: ["chord stab echo rhythm"] } },
+      },
+      {
+        id: "wide-pads",
+        label: "Wide Pads",
+        description: "Warm wide pads carry emotion and depth.",
+        tags: { pads: { sound: ["Juno-style pad"], tone: ["dreamy stereo wash"], groove: ["breathing sidechain pad"] } },
+      },
+      {
+        id: "glassy-synth",
+        label: "Glassy Synth Texture",
+        description: "Light upper texture, metallic detail and restrained melody.",
+        tags: { synth: { sound: ["FM bell pluck", "granular synth flecks"], tone: ["dreamy filtered melody"] } },
+      },
+      {
+        id: "dark-drone",
+        label: "Dark Drone Bed",
+        description: "Low dark atmosphere and slow filter movement.",
+        tags: { pads: { sound: ["dark drone bed"], tone: ["filtered tape haze"], groove: ["subtle LFO motion"] } },
+      },
+    ],
+  },
+  {
+    id: "fxMovement",
+    label: "FX / Movement",
+    prompt: "How should movement and transitions happen?",
+    options: [
+      {
+        id: "tape-feedback",
+        label: "Tape-Delay Feedback",
+        description: "Delay feedback and echo tails act as musical structure.",
+        tags: { fx: { sound: ["tape delay feedback"], tone: ["dub feedback cloud", "filtered tape echo"] } },
+      },
+      {
+        id: "filter-automation",
+        label: "Filter Automation",
+        description: "Low-pass/high-pass movement opens and closes energy.",
+        tags: { fx: { sound: ["filter sweep"], tone: ["resonant filter pulses"] }, transitions: { tone: ["tension filter close"] } },
+      },
+      {
+        id: "reverb-freeze",
+        label: "Reverb Freeze",
+        description: "Long reverb tails bridge sections and outro space.",
+        tags: { fx: { sound: ["reverb swell"], tone: ["space echo color"] }, transitions: { tone: ["wide reverb bridge"] } },
+      },
+      {
+        id: "phaser-chorus",
+        label: "Phaser / Chorus Motion",
+        description: "Movement comes from phaser, chorus and stereo modulation.",
+        tags: { fx: { tone: ["phaser movement", "flanger sweep"] }, pads: { tone: ["modulated pad shimmer"] } },
+      },
+    ],
+  },
+  {
+    id: "vocalFxRole",
+    label: "Vocal FX Role",
+    prompt: "Should voice appear as sound design?",
+    options: [
+      {
+        id: "none",
+        label: "No Vocals",
+        description: "Fully instrumental; no vocal material.",
+        vocalMode: "no-vocals",
+        tags: {},
+      },
+      {
+        id: "ghost-chops",
+        label: "Ghost Vocal Chops",
+        description: "Barely audible vocal fragments for texture and rhythm.",
+        vocalMode: "instrumental-vocal-fx",
+        tags: { vocals: { sound: ["ghost vocal chops"], tone: ["low-mixed vocal dust"], groove: ["shadow voice fragments"] } },
+      },
+      {
+        id: "vocoder",
+        label: "Vocoder / Robot",
+        description: "Robotic vocoder textures, no lead singing.",
+        vocalMode: "vocoder-textures",
+        tags: { vocals: { sound: ["robotic vocal chops"], tone: ["metallic vocoder tone", "robotic formant shift"] } },
+      },
+      {
+        id: "breath-perc",
+        label: "Breath Percussion",
+        description: "Breath chops and vowel hits behave like percussion.",
+        vocalMode: "instrumental-vocal-fx",
+        tags: { vocals: { sound: ["breath chops"], groove: ["stuttered breath rhythm", "offbeat vowel groove"] } },
+      },
+    ],
+  },
+];
+
 export const TAG_GROUPS = {
   kick: {
     sound: [

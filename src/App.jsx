@@ -15,6 +15,7 @@ import {
   INSTRUMENTS,
   JOURNEY_BLUEPRINTS,
   CHARACTERISTIC_OPTIONS,
+  GUIDED_BUILDER_QUESTIONS,
   PROMPT_LANGUAGES,
   PROMPT_DENSITIES,
   STRUCTURE_COLORS,
@@ -40,6 +41,9 @@ import { compilePromptBundle } from "./utils/promptCompiler.js";
 
 const defaultPreset = TRACK_PRESETS[0];
 const STORAGE_KEY = "groovePromptBuilder.savedPrompts";
+const defaultGuidedAnswers = Object.fromEntries(
+  GUIDED_BUILDER_QUESTIONS.map((question) => [question.id, question.options[0]?.id])
+);
 
 function loadSavedSnapshots() {
   try {
@@ -70,6 +74,85 @@ function ToggleGroup({ label, value, options, onChange }) {
         })}
       </div>
     </div>
+  );
+}
+
+function GuidedQuestion({ question, value, onChange }) {
+  return (
+    <section className="guided-question">
+      <div className="guided-question-head">
+        <div>
+          <h4>{question.label}</h4>
+          <p>{question.prompt}</p>
+        </div>
+        <span>{question.options.length} choices</span>
+      </div>
+      <div className="guided-options">
+        {question.options.map((option) => (
+          <button
+            className={value === option.id ? "is-selected" : ""}
+            key={option.id}
+            type="button"
+            onClick={() => onChange(option.id)}
+          >
+            <strong>{option.label}</strong>
+            <span>{option.description}</span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function appendUnique(current = [], values = []) {
+  return [...new Set([...current, ...values])];
+}
+
+function mergeTagAnswers(baseSelections, options) {
+  const next = JSON.parse(JSON.stringify(baseSelections));
+  options.forEach((option) => {
+    Object.entries(option.tags || {}).forEach(([instrumentId, groups]) => {
+      next[instrumentId] = next[instrumentId] || { sound: [], tone: [], groove: [], notes: "" };
+      Object.entries(groups).forEach(([group, values]) => {
+        next[instrumentId][group] = appendUnique(next[instrumentId][group], values);
+      });
+    });
+  });
+  return next;
+}
+
+function appendMetaText(current, value) {
+  if (!value) return current || "";
+  if (!current) return value;
+  return current.toLowerCase().includes(value.toLowerCase()) ? current : `${current}, ${value}`;
+}
+
+function scaleStructureToLength(structure, sourceLength, targetLength) {
+  if (sourceLength === targetLength) return structure;
+  return structure.map((section, index) => {
+    const start = index === 0 ? 1 : Math.max(1, Math.round(((section.start - 1) / sourceLength) * targetLength) + 1);
+    const nextSourceStart = structure[index + 1]?.start;
+    const end = nextSourceStart
+      ? Math.max(start, Math.round(((nextSourceStart - 1) / sourceLength) * targetLength))
+      : targetLength;
+    return { ...section, start, end };
+  });
+}
+
+function scaleRangesToLength(ranges, sourceLength, targetLength) {
+  if (sourceLength === targetLength) return ranges;
+  const sourceBlocks = sourceLength / 4;
+  const targetBlocks = targetLength / 4;
+  const factor = targetBlocks / sourceBlocks;
+  return Object.fromEntries(
+    Object.entries(ranges).map(([instrumentId, instrumentRanges]) => [
+      instrumentId,
+      instrumentRanges.map(([start, end]) => {
+        const scaledStart = Math.min(targetBlocks - 1, Math.max(0, Math.round(start * factor)));
+        const scaledEnd = Math.min(targetBlocks - 1, Math.max(scaledStart, Math.round((end + 1) * factor) - 1));
+        return [scaledStart, scaledEnd];
+      }),
+    ])
   );
 }
 
@@ -162,8 +245,7 @@ function App() {
   const [savedSnapshots, setSavedSnapshots] = useState(loadSavedSnapshots);
   const [saveName, setSaveName] = useState("");
   const [guided, setGuided] = useState({
-    vibe: "deep",
-    energy: "warm-up",
+    answers: defaultGuidedAnswers,
     length: 64,
   });
   const [promptDensity, setPromptDensity] = useState("balanced");
@@ -243,21 +325,56 @@ function App() {
   };
 
   const applyGuidedBlueprint = () => {
-    const candidates = JOURNEY_BLUEPRINTS.filter((preset) => {
-      const text = `${preset.summary} ${preset.meta.energy} ${preset.meta.mood}`.toLowerCase();
-      const vibeMatch = guided.vibe === "deep" ? text.includes("deep") || text.includes("hypnotic") : text.includes(guided.vibe);
-      const energyMatch =
-        guided.energy === "warm-up"
-          ? text.includes("intro") || text.includes("warm") || text.includes("calm")
-          : guided.energy === "core"
-            ? text.includes("core") || text.includes("main") || text.includes("club")
-            : text.includes("closing") || text.includes("outro") || text.includes("horizon");
-      return vibeMatch && energyMatch;
-    });
-    const closest = [...(candidates.length ? candidates : JOURNEY_BLUEPRINTS)].sort(
+    const selectedOptions = GUIDED_BUILDER_QUESTIONS.map((question) => {
+      return question.options.find((option) => option.id === guided.answers[question.id]) || question.options[0];
+    }).filter(Boolean);
+    const styleOption = selectedOptions.find((option) => option.blueprint);
+    const candidates = styleOption?.blueprint
+      ? JOURNEY_BLUEPRINTS.filter((preset) => preset.id === styleOption.blueprint)
+      : JOURNEY_BLUEPRINTS;
+    const blueprint = [...(candidates.length ? candidates : JOURNEY_BLUEPRINTS)].sort(
       (a, b) => Math.abs(a.meta.length - guided.length) - Math.abs(b.meta.length - guided.length)
     )[0];
-    applyBlueprint(closest);
+    const guidedSelections = mergeTagAnswers(createSelectionsFromMap(blueprint.selections), selectedOptions);
+    const guidedNotes = selectedOptions
+      .map((option) => {
+        const note = option.note ? ` ${option.note}` : "";
+        return `- ${option.label}: ${option.description}${note}`;
+      })
+      .join("\n");
+    const guidedMeta = selectedOptions.reduce(
+      (next, option) => {
+        const optionMeta = option.meta || {};
+        return {
+          ...next,
+          energy: appendMetaText(next.energy, optionMeta.energy),
+          mood: appendMetaText(next.mood, optionMeta.mood || option.description),
+          groove: appendMetaText(next.groove, optionMeta.groove),
+          soundCharacter: appendMetaText(next.soundCharacter, optionMeta.soundCharacter),
+          vocalMode: option.vocalMode || next.vocalMode,
+        };
+      },
+      {
+        ...blueprint.meta,
+        length: guided.length,
+        targetTool: meta.targetTool,
+        promptLanguage: meta.promptLanguage,
+      }
+    );
+    const guidedStructure = scaleStructureToLength(blueprint.structure, blueprint.meta.length, guided.length);
+    const guidedRanges = scaleRangesToLength(blueprint.ranges, blueprint.meta.length, guided.length);
+
+    setMeta(guidedMeta);
+    setTrackRows(createDefaultTrackRows());
+    setStructure(guidedStructure);
+    setArrangement(createArrangementFromRanges(guided.length, guidedRanges));
+    setSelections(guidedSelections);
+    setBlockOverrides({});
+    setSelectedCells([]);
+    setNotes(`${blueprint.notes}\n\nGuided decisions:\n${guidedNotes}`);
+    setActiveTrackId("bass");
+    setActiveSectionId(guidedStructure[0]?.id || "intro");
+    setActiveCard("elements");
   };
 
   const changeLength = (length) => {
@@ -798,24 +915,27 @@ function App() {
                 <div className="guided-box">
                   <div className="assignment-heading">
                     <h3>Guided Track Builder</h3>
-                    <span>questions to matching blueprint</span>
+                    <span>research-based blueprint + modifiers</span>
                   </div>
-                  <ToggleGroup
-                    label="Vibe"
-                    value={guided.vibe}
-                    options={["deep", "dub", "driving", "closing"]}
-                    onChange={(vibe) => setGuided((previous) => ({ ...previous, vibe }))}
-                  />
-                  <ToggleGroup
-                    label="Energy"
-                    value={guided.energy}
-                    options={[
-                      { id: "warm-up", label: "Warm-up" },
-                      { id: "core", label: "Core Groove" },
-                      { id: "closing", label: "Closing" },
-                    ]}
-                    onChange={(energy) => setGuided((previous) => ({ ...previous, energy }))}
-                  />
+                  <p className="guided-intro">
+                    Build a complete starting track from musical decisions: character, arrangement logic, groove driver,
+                    low-end relation, atmosphere, movement and vocal FX role.
+                  </p>
+                  <div className="guided-question-list">
+                    {GUIDED_BUILDER_QUESTIONS.map((question) => (
+                      <GuidedQuestion
+                        key={question.id}
+                        question={question}
+                        value={guided.answers[question.id]}
+                        onChange={(answerId) =>
+                          setGuided((previous) => ({
+                            ...previous,
+                            answers: { ...previous.answers, [question.id]: answerId },
+                          }))
+                        }
+                      />
+                    ))}
+                  </div>
                   <ToggleGroup
                     label="Length"
                     value={guided.length}
