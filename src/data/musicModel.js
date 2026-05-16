@@ -97,64 +97,264 @@ export const INSTRUMENTS = [
   { id: "vocals", label: "Vocals", color: "#ef6f9a" },
   { id: "chords", label: "Chords", color: "#698bff" },
   { id: "pads", label: "Pads", color: "#86bfd4" },
-  { id: "fx", label: "FX / Transitions", color: "#b7bec8" },
+  { id: "fx", label: "FX", color: "#b7bec8" },
+  { id: "transitions", label: "Transitions", color: "#d2d8e2" },
 ];
+
+const e = (label, description) => ({ label, description });
 
 export const TAG_GROUPS = {
   kick: {
-    sound: ["rounded kick", "deep club kick", "dry analog kick", "heartbeat kick"],
-    tone: ["tight low-end", "soft saturation", "warm analog mix", "tight transients"],
-    groove: ["four-on-the-floor", "groove pocket", "stripped-back groove"],
+    sound: [
+      e("rounded kick", "Soft deep kick drum with controlled transient"),
+      e("deep club kick", "Club-focused low kick with strong low-end pressure"),
+      e("dry analog kick", "Short analog drum-machine kick without long reverb"),
+      e("heartbeat kick", "Organic pulsing kick feel for deep hypnotic tracks"),
+      e("909-style kick", "Classic techno kick with tight attack and tail"),
+      e("muted kick thump", "Soft low thump for sparse intros and breakdowns"),
+    ],
+    tone: [
+      e("tight low-end", "Controlled bass frequency range"),
+      e("soft saturation", "Gentle harmonic distortion for analog warmth"),
+      e("short saturated tail", "Compact kick decay with warm drive"),
+      e("clicky attack", "Audible transient click for definition"),
+      e("sub-focused punch", "Low punch without excessive high transient"),
+    ],
+    groove: [
+      e("four-on-the-floor", "Steady kick on every beat"),
+      e("groove pocket", "Tight lock between kick, bass, and drums"),
+      e("stripped-back groove", "Minimal rhythmic arrangement with space"),
+      e("kick mute", "Temporary kick removal for breaks and false drops"),
+    ],
   },
   bass: {
-    sound: ["rolling bassline", "deep rounded bass", "dubby low-end", "filtered bass pulse"],
-    tone: ["sub-heavy bass", "warm analog bass", "sidechained bass", "ghost bass notes"],
-    groove: ["hypnotic bass loop", "syncopated bass accents", "rubbery bassline"],
+    sound: [
+      e("rolling bassline", "Continuous moving bass groove"),
+      e("deep rounded bass", "Soft deep bass tone"),
+      e("dubby low-end", "Dub-influenced bass texture"),
+      e("filtered bass pulse", "Bass shaped by filter movement"),
+      e("303-style acid pulse", "Minimal resonant acid-inspired bass movement"),
+      e("Moog-style bass", "Warm rounded analog monosynth bass character"),
+    ],
+    tone: [
+      e("sub-heavy bass", "Strong sub-frequency bass foundation"),
+      e("warm analog bass", "Analog-style bass tone with soft harmonics"),
+      e("sidechained bass", "Bass ducks under kick for groove pocket"),
+      e("ghost bass notes", "Very quiet extra bass notes for movement"),
+      e("modulated filter bass", "Cutoff movement creates evolving tone"),
+    ],
+    groove: [
+      e("hypnotic bass loop", "Repetitive bass pattern with trance-like flow"),
+      e("syncopated bass accents", "Off-beat bass hits and accents"),
+      e("rubbery bassline", "Elastic bass movement"),
+      e("two-note bass motif", "Simple two-tone movement for minimal groove"),
+      e("shadow bass movement", "Subtle supporting bass motion below the main rhythm"),
+    ],
   },
   sub: {
-    sound: ["sub bass pulse", "deep low-end", "tight low-end"],
-    tone: ["controlled sub pressure", "soft low-end bloom", "mono bass foundation"],
-    groove: ["locked with kick", "pulsing low-frequency movement", "bass mute"],
+    sound: [
+      e("sub bass pulse", "Pulsing low-frequency bass"),
+      e("deep low-end", "Strong bass foundation"),
+      e("mono sub layer", "Centered sub support under bass and kick"),
+      e("sine sub pressure", "Clean sine-like sub foundation"),
+    ],
+    tone: [
+      e("controlled sub pressure", "Sub energy kept tight and mix-ready"),
+      e("soft low-end bloom", "Gentle spreading low-end warmth"),
+      e("mono bass foundation", "Low-end held in the center of the mix"),
+    ],
+    groove: [
+      e("locked with kick", "Sub follows kick groove tightly"),
+      e("pulsing low-frequency movement", "Sub moves rhythmically without melodic complexity"),
+      e("bass mute", "Temporary bass removal to create tension"),
+    ],
   },
   hats: {
-    sound: ["shuffled hats", "offbeat hats", "tight closed hats", "hi-hat rolls"],
-    tone: ["dry percussion", "filtered percussion", "tight transients"],
-    groove: ["micro-groove", "shaker shuffle", "off-grid human feel"],
+    sound: [
+      e("shuffled hats", "Hi-hats with swing timing"),
+      e("offbeat hats", "Classic offbeat open hat energy"),
+      e("tight closed hats", "Short crisp closed hats"),
+      e("open hats", "Longer hat accents for groove lift"),
+      e("crisp digital hats", "Sharp clean top-end hat texture"),
+      e("hi-hat rolls", "Fast hat sequences for tension"),
+    ],
+    tone: [
+      e("dry percussion", "Minimal reverb percussion sound"),
+      e("filtered hats", "Frequency-shaped hats with muted brightness"),
+      e("tight transients", "Clean attack definition"),
+      e("shadow hats", "Quiet background hats for subtle motion"),
+    ],
+    groove: [
+      e("micro-groove", "Tiny rhythmic variations inside loop"),
+      e("shaker shuffle", "Shaker-like swing layer"),
+      e("off-grid human feel", "Slight timing imperfection for realism"),
+      e("hat tension lift", "Increasing hat activity into a build"),
+    ],
   },
   perc: {
-    sound: ["rim clicks", "woodblock hits", "muted congas", "metallic ticks"],
-    tone: ["organic percussion layers", "ghost percussion", "vinyl crackle rhythm"],
-    groove: ["syncopated rhythm", "machine funk", "percussion swap"],
+    sound: [
+      e("rim clicks", "Short metallic percussion clicks"),
+      e("woodblock hits", "Organic wooden percussion"),
+      e("muted congas", "Soft damped conga hits"),
+      e("low toms", "Rounded low drum accents"),
+      e("snare ghost hits", "Quiet snare details for rhythmic texture"),
+      e("metallic ticks", "Small metallic rhythmic sounds"),
+      e("click percussion", "Tiny click-based techno percussion"),
+    ],
+    tone: [
+      e("organic percussion layers", "Natural-sounding percussion textures"),
+      e("ghost percussion", "Very quiet supporting percussion"),
+      e("vinyl crackle rhythm", "Vinyl noise used rhythmically"),
+      e("modulated delay percussion", "Delay movement turns percussion into texture"),
+    ],
+    groove: [
+      e("syncopated rhythm", "Off-beat rhythmic placement"),
+      e("machine funk", "Mechanical but funky groove"),
+      e("percussion swap", "Changing percussion elements between sections"),
+      e("snips and chops", "Short chopped percussion fragments"),
+    ],
   },
   clap: {
-    sound: ["dry clap", "short room clap", "muted clap layer", "delayed clap accent"],
-    tone: ["tight transient clap", "filtered clap", "reverb tail clap"],
-    groove: ["offbeat support", "backbeat accent", "ghost clap detail"],
+    sound: [
+      e("dry clap", "Clean short clap layer"),
+      e("short room clap", "Clap with compact room ambience"),
+      e("muted clap layer", "Soft clap supporting the groove"),
+      e("delayed clap accent", "Clap hit supported by short delay"),
+    ],
+    tone: [
+      e("tight transient clap", "Fast attack and controlled decay"),
+      e("filtered clap", "Frequency-shaped clap with reduced brightness"),
+      e("reverb tail clap", "Clap with audible spatial tail"),
+    ],
+    groove: [
+      e("offbeat support", "Clap supports offbeat rhythm"),
+      e("backbeat accent", "Clap emphasizes classic backbeat placement"),
+      e("ghost clap detail", "Quiet clap hit for texture"),
+    ],
   },
   synth: {
-    sound: ["muted synth motif", "modular synth pulses", "filtered plucks", "minimal synth hook"],
-    tone: ["detuned synth pulse", "liquid synth line", "percussive synth hit"],
-    groove: ["loop evolution", "micro variation", "restrained melodic movement"],
+    sound: [
+      e("muted synth motif", "Small subdued synth pattern"),
+      e("modular synth pulses", "Electronic modular-style pulses"),
+      e("filtered plucks", "Short plucked synth notes shaped by filter"),
+      e("minimal synth hook", "Simple repeating synth idea"),
+      e("Prophet-style chords", "Warm polyphonic analog character"),
+      e("Virus-style digital pulse", "Clean digital synth pulse with club edge"),
+    ],
+    tone: [
+      e("detuned synth pulse", "Slightly detuned synth sound"),
+      e("liquid synth line", "Smooth flowing synth movement"),
+      e("percussive synth hit", "Synth used as rhythm element"),
+      e("dreamy filtered tone", "Soft melodic color with filtering"),
+      e("tape-fx synth", "Synth colored by tape-style wobble and saturation"),
+    ],
+    groove: [
+      e("loop evolution", "Loop changes subtly over time"),
+      e("micro variation", "Small recurring variations in the pattern"),
+      e("restrained melodic movement", "Melody stays minimal and non-pop"),
+      e("minimal arpeggiator", "Simple arpeggiated motion for hypnotic movement"),
+      e("tricky modulation pattern", "Evolving modulation gives a clever rhythmic feel"),
+    ],
   },
   vocals: {
-    sound: ["chopped vocals", "vocal stutters", "ghost vocal chops", "breath chops"],
-    tone: ["vocoder textures", "formant shifting", "pitch-shifted whispers"],
-    groove: ["vocal percussion", "glitch vocal fills", "vowel hits"],
+    sound: [
+      e("chopped vocals", "Vocal fragments used rhythmically instead of singing"),
+      e("vocal stutters", "Repeated micro vocal hits creating rhythmic glitch feel"),
+      e("ghost vocal chops", "Very subtle background vocal fragments"),
+      e("breath chops", "Breath sounds used as percussion"),
+      e("robotic vocal chops", "Vocals processed into machine-like rhythm elements"),
+    ],
+    tone: [
+      e("vocoder textures", "Synth-like vocal transformation"),
+      e("formant shifting", "Changes vocal character without changing melody"),
+      e("pitch-shifted whispers", "Whispered vocals with pitch manipulation"),
+      e("filtered vocal sweeps", "Vocals transformed into riser-like movement"),
+    ],
+    groove: [
+      e("vocal percussion", "Voice used as drum-like element"),
+      e("glitch vocal fills", "Broken vocal fills for transitions"),
+      e("vowel hits", "Single vowels used as rhythmic hits"),
+      e("shadow voice fragments", "Quiet voice pieces hidden in the groove"),
+    ],
   },
   chords: {
-    sound: ["dub chord stabs", "reverb-soaked chords", "filtered chord movement"],
-    tone: ["suspended chords", "harmonic haze", "warm chord wash"],
-    groove: ["delay tail bridge", "chord swell", "additive arrangement"],
+    sound: [
+      e("dub chord stabs", "Echo-heavy chord hits"),
+      e("reverb-soaked chords", "Deep reverb chord texture"),
+      e("filtered chord movement", "Chords shaped by filter automation"),
+      e("minor chord stabs", "Dark minor stabs for club atmosphere"),
+    ],
+    tone: [
+      e("suspended chords", "Floating unresolved harmony"),
+      e("harmonic haze", "Soft harmonic background layer"),
+      e("warm chord wash", "Warm soft chord background"),
+      e("melancholic harmony", "Subtle emotional minor-key harmonic tone"),
+    ],
+    groove: [
+      e("delay tail bridge", "Echo connects song sections"),
+      e("chord swell", "Gradually rising chord"),
+      e("additive arrangement", "Elements added gradually"),
+      e("two-chord motion", "Simple two-chord harmonic movement"),
+    ],
   },
   pads: {
-    sound: ["atmospheric pads", "wide pads", "soft drone", "ambient wash"],
-    tone: ["wet background textures", "spacious stereo field", "harmonic haze"],
-    groove: ["slow filter movement", "tension rebuild", "central breakdown"],
+    sound: [
+      e("atmospheric pads", "Wide ambient background sound"),
+      e("wide pads", "Large stereo pad texture"),
+      e("soft drone", "Sustained low-motion atmosphere"),
+      e("ambient wash", "Soft background ambience"),
+    ],
+    tone: [
+      e("wet background textures", "Reverb-heavy ambient layer"),
+      e("spacious stereo field", "Wide stereo image"),
+      e("harmonic haze", "Soft harmonic background layer"),
+      e("dreamy pad color", "Soft emotional pad tone"),
+    ],
+    groove: [
+      e("slow filter movement", "Gradual filter motion across sections"),
+      e("tension rebuild", "Rebuilding energy after breakdown"),
+      e("central breakdown", "Main breakdown section"),
+    ],
   },
   fx: {
-    sound: ["filter sweep", "tape delay feedback", "reverb swell", "noise riser"],
-    tone: ["reversed tail", "downlifter", "delay throws", "filtered vocal sweeps"],
-    groove: ["glitch fill", "delay tail bridge", "vocoder riser", "micro-breakdown"],
+    sound: [
+      e("filter sweep", "Frequency opening or closing effect"),
+      e("tape delay feedback", "Increasing echo regeneration"),
+      e("reverb swell", "Expanding space effect"),
+      e("noise texture", "Noise layer used for atmosphere"),
+      e("analog filter movement", "Cutoff movement with analog feel"),
+    ],
+    tone: [
+      e("reversed tail", "Backwards audio tail used as effect"),
+      e("delay throws", "Isolated echoes thrown into space"),
+      e("tape saturation movement", "Warm tape-like movement and drive"),
+      e("resonant filter pulses", "Rhythmic resonance movement"),
+    ],
+    groove: [
+      e("glitch fill", "Digital broken transition detail"),
+      e("micro-breakdown", "Short breakdown section"),
+      e("modulation sweep", "LFO-like sweep across the groove"),
+    ],
+  },
+  transitions: {
+    sound: [
+      e("noise riser", "Rising noise build-up"),
+      e("pitch riser", "Rising pitch transition sound"),
+      e("downlifter", "Falling transition effect"),
+      e("reversed vocal tail", "Backwards vocal ending for transitions"),
+      e("delay tail bridge", "Echo connects song sections"),
+    ],
+    tone: [
+      e("filtered transition sweep", "Filtered movement across a section boundary"),
+      e("wide reverb bridge", "Reverb bridge between two song sections"),
+      e("tape-delay transition", "Dubby tape-delay movement into a new section"),
+    ],
+    groove: [
+      e("false drop", "Fake drop before the real groove return"),
+      e("energy staircase", "Gradual energy increase"),
+      e("groove return", "Return of the main groove"),
+      e("subtractive outro", "Elements removed over time for mix-out"),
+    ],
   },
 };
 
@@ -184,6 +384,27 @@ export const DEFAULT_EXCLUDES = [
   "acoustic singer-songwriter",
   "cheesy vocals",
 ];
+
+export function tagLabel(tag) {
+  return typeof tag === "string" ? tag : tag.label;
+}
+
+export function tagDescription(tag) {
+  return typeof tag === "string" ? "" : tag.description;
+}
+
+export function findInstrument(instrumentId) {
+  return INSTRUMENTS.find((instrument) => instrument.id === instrumentId);
+}
+
+export function createDefaultTrackRows() {
+  return INSTRUMENTS.map((instrument) => ({
+    id: instrument.id,
+    instrumentId: instrument.id,
+    label: instrument.label,
+    base: true,
+  }));
+}
 
 export const STRUCTURE_COLORS = {
   intro: "#2a3445",
@@ -231,7 +452,8 @@ export function createDefaultArrangement(length) {
     vocals: [[Math.floor(blockCount / 2), Math.floor(blockCount / 2) + 1]],
     chords: [[Math.floor(blockCount / 2) - 1, Math.floor(blockCount / 2) + 2]],
     pads: [[0, 2], [Math.floor(blockCount / 2) - 1, Math.floor(blockCount / 2) + 1]],
-    fx: [[1, 1], [Math.floor(blockCount / 2) - 1, Math.floor(blockCount / 2)], [blockCount - 2, blockCount - 1]],
+    fx: [[1, 1], [Math.floor(blockCount / 2) - 1, Math.floor(blockCount / 2)]],
+    transitions: [[Math.floor(blockCount / 2) - 1, Math.floor(blockCount / 2)], [blockCount - 2, blockCount - 1]],
   };
 
   Object.entries(ranges).forEach(([instrumentId, instrumentRanges]) => {

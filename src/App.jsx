@@ -22,10 +22,14 @@ import {
   VOCAL_MODES,
   createDefaultArrangement,
   createDefaultStructure,
+  createDefaultTrackRows,
   createInitialSelections,
+  findInstrument,
   getBlockLabel,
   getRecommendations,
   getSectionForBlock,
+  tagDescription,
+  tagLabel,
 } from "./data/musicModel.js";
 import { compilePromptBundle } from "./utils/promptCompiler.js";
 
@@ -67,21 +71,76 @@ function Stat({ icon: Icon, label, value }) {
   );
 }
 
-function TagChip({ active, recommended, children, onClick }) {
+function TagChip({ active, recommended, children, onClick, onDoubleClick }) {
   return (
     <button
       className={`tag-chip ${active ? "is-active" : ""} ${recommended ? "is-recommended" : ""}`}
       type="button"
       onClick={onClick}
+      onDoubleClick={onDoubleClick}
     >
       {children}
     </button>
   );
 }
 
+function EffectTable({ tags, selectedTags, recommendations, onAdd }) {
+  return (
+    <div className="effect-table">
+      <div className="effect-table-head">
+        <span>Effect Word</span>
+        <span>Description</span>
+      </div>
+      {tags.map((tag) => {
+        const label = tagLabel(tag);
+        return (
+          <button
+            className={`effect-row ${selectedTags.includes(label) ? "is-active" : ""} ${recommendations.has(label) ? "is-recommended" : ""}`}
+            key={label}
+            type="button"
+            onDoubleClick={() => onAdd(label)}
+            title="Double click to assign"
+          >
+            <strong>{label}</strong>
+            <span>{tagDescription(tag)}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function AssignmentSection({ group, tags, onFocus, onRemove }) {
+  return (
+    <section className="assignment-section" onClick={onFocus}>
+      <div className="assignment-heading">
+        <h3>{group}</h3>
+        <span>{tags.length ? "double click to remove" : "click to choose"}</span>
+      </div>
+      <div className="assigned-tags">
+        {tags.length ? (
+          tags.map((tag) => (
+            <TagChip key={tag} active onDoubleClick={(event) => {
+              event.stopPropagation();
+              onRemove(tag);
+            }}>
+              {tag}
+            </TagChip>
+          ))
+        ) : (
+          <em>No {group} words assigned yet</em>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function App() {
   const [activeCard, setActiveCard] = useState("setup");
-  const [activeInstrument, setActiveInstrument] = useState("bass");
+  const [trackRows, setTrackRows] = useState(createDefaultTrackRows);
+  const [activeTrackId, setActiveTrackId] = useState("bass");
+  const [activeTagGroup, setActiveTagGroup] = useState("sound");
+  const [rightPanelTab, setRightPanelTab] = useState("prompt");
   const [activeSectionId, setActiveSectionId] = useState("intro");
   const [copied, setCopied] = useState("");
   const [openPromptPanels, setOpenPromptPanels] = useState({
@@ -102,7 +161,9 @@ function App() {
   const [selections, setSelections] = useState(createInitialSelections);
 
   const blockCount = meta.length / 4;
-  const activeInstrumentModel = INSTRUMENTS.find((instrument) => instrument.id === activeInstrument);
+  const activeTrack = trackRows.find((row) => row.id === activeTrackId) || trackRows[0];
+  const activeInstrument = activeTrack.instrumentId;
+  const activeInstrumentModel = findInstrument(activeInstrument);
   const activeSection = structure.find((section) => section.id === activeSectionId) || structure[0];
   const recommendations = useMemo(
     () => getRecommendations({ meta, activeInstrument, activeSection }),
@@ -111,51 +172,68 @@ function App() {
 
   const energy = useMemo(() => {
     return Array.from({ length: blockCount }, (_, blockIndex) => {
-      const activeCount = INSTRUMENTS.reduce((sum, instrument) => {
-        return sum + (arrangement[instrument.id]?.[blockIndex] ? 1 : 0);
+      const activeCount = trackRows.reduce((sum, row) => {
+        return sum + (arrangement[row.id]?.[blockIndex] ? 1 : 0);
       }, 0);
-      return activeCount / INSTRUMENTS.length;
+      return activeCount / trackRows.length;
     });
-  }, [arrangement, blockCount]);
+  }, [arrangement, blockCount, trackRows]);
 
   const prompts = useMemo(
-    () => compilePromptBundle({ meta, structure, selections, arrangement, notes }),
-    [meta, structure, selections, arrangement, notes]
+    () => compilePromptBundle({ meta, structure, selections, arrangement, notes, trackRows }),
+    [meta, structure, selections, arrangement, notes, trackRows]
   );
   const styleCharCount = prompts.style.length;
 
   const applyPreset = (preset) => {
     setMeta((previous) => ({ ...previous, ...preset }));
+    setTrackRows(createDefaultTrackRows());
     setStructure(createDefaultStructure(preset.length));
     setArrangement(createDefaultArrangement(preset.length));
+    setSelections(createInitialSelections());
+    setActiveTrackId("bass");
     setActiveSectionId("intro");
   };
 
   const changeLength = (length) => {
     setMeta((previous) => ({ ...previous, length }));
+    setTrackRows(createDefaultTrackRows());
     setStructure(createDefaultStructure(length));
     setArrangement(createDefaultArrangement(length));
+    setSelections(createInitialSelections());
+    setActiveTrackId("bass");
     setActiveSectionId("intro");
   };
 
-  const updateSelection = (group, tag) => {
+  const updateSelection = (group, tagValue) => {
+    const label = tagLabel(tagValue);
     setSelections((previous) => {
-      const current = previous[activeInstrument][group];
-      const nextGroup = current.includes(tag) ? current.filter((item) => item !== tag) : [...current, tag];
+      const current = previous[activeTrackId][group];
+      const nextGroup = current.includes(label) ? current.filter((item) => item !== label) : [...current, label];
       return {
         ...previous,
-        [activeInstrument]: {
-          ...previous[activeInstrument],
+        [activeTrackId]: {
+          ...previous[activeTrackId],
           [group]: nextGroup,
         },
       };
     });
   };
 
-  const toggleArrangement = (instrumentId, blockIndex) => {
+  const removeSelection = (group, tag) => {
+    setSelections((previous) => ({
+      ...previous,
+      [activeTrackId]: {
+        ...previous[activeTrackId],
+        [group]: previous[activeTrackId][group].filter((item) => item !== tag),
+      },
+    }));
+  };
+
+  const toggleArrangement = (rowId, blockIndex) => {
     setArrangement((previous) => ({
       ...previous,
-      [instrumentId]: previous[instrumentId].map((active, index) => (index === blockIndex ? !active : active)),
+      [rowId]: previous[rowId].map((active, index) => (index === blockIndex ? !active : active)),
     }));
   };
 
@@ -164,11 +242,56 @@ function App() {
     const endBlock = Math.floor((activeSection.end - 1) / 4);
     setArrangement((previous) => ({
       ...previous,
-      [activeInstrument]: previous[activeInstrument].map((active, index) => {
+      [activeTrackId]: previous[activeTrackId].map((active, index) => {
         if (index >= startBlock && index <= endBlock) return true;
         return active;
       }),
     }));
+  };
+
+  const isRowEmpty = (rowId) => {
+    const selected = selections[rowId] || { sound: [], tone: [], groove: [], notes: "" };
+    return !arrangement[rowId]?.some(Boolean) && !selected.sound.length && !selected.tone.length && !selected.groove.length && !selected.notes;
+  };
+
+  const handleRowDoubleClick = (row) => {
+    if (!row.base && isRowEmpty(row.id)) {
+      setTrackRows((previous) => previous.filter((item) => item.id !== row.id));
+      setArrangement((previous) => {
+        const next = { ...previous };
+        delete next[row.id];
+        return next;
+      });
+      setSelections((previous) => {
+        const next = { ...previous };
+        delete next[row.id];
+        return next;
+      });
+      if (activeTrackId === row.id) {
+        const fallback = trackRows.find((item) => item.instrumentId === row.instrumentId && item.id !== row.id) || trackRows[0];
+        setActiveTrackId(fallback.id);
+      }
+      return;
+    }
+
+    const instrument = findInstrument(row.instrumentId);
+    const count = trackRows.filter((item) => item.instrumentId === row.instrumentId).length + 1;
+    const id = `${row.instrumentId}-${Date.now()}`;
+    const insertIndex = trackRows.findIndex((item) => item.id === row.id) + 1;
+    const newRow = {
+      id,
+      instrumentId: row.instrumentId,
+      label: `${instrument.label} ${count}`,
+      base: false,
+    };
+
+    setTrackRows((previous) => [...previous.slice(0, insertIndex), newRow, ...previous.slice(insertIndex)]);
+    setArrangement((previous) => ({ ...previous, [id]: Array(blockCount).fill(false) }));
+    setSelections((previous) => ({
+      ...previous,
+      [id]: { sound: [], tone: [], groove: [], notes: "" },
+    }));
+    setActiveTrackId(id);
   };
 
   const togglePromptPanel = (panel) => {
@@ -273,20 +396,24 @@ function App() {
               );
             })}
 
-            {INSTRUMENTS.map((instrument) => (
-              <div className="grid-row" key={instrument.id}>
+            {trackRows.map((row) => {
+              const instrument = findInstrument(row.instrumentId);
+              return (
+              <div className="grid-row" key={row.id}>
                 <button
-                  className={`instrument-row-label ${activeInstrument === instrument.id ? "is-active" : ""}`}
+                  className={`instrument-row-label ${activeTrackId === row.id ? "is-active" : ""}`}
                   type="button"
+                  onDoubleClick={() => handleRowDoubleClick(row)}
                   onClick={() => {
-                    setActiveInstrument(instrument.id);
+                    setActiveTrackId(row.id);
                     setActiveCard("elements");
                   }}
+                  title="Double click: add duplicate track. Double click an empty duplicate to remove it."
                 >
                   <span style={{ background: instrument.color }} />
-                  {instrument.label}
+                  {row.label}
                 </button>
-                {arrangement[instrument.id].map((active, blockIndex) => {
+                {arrangement[row.id].map((active, blockIndex) => {
                   const section = getSectionForBlock(structure, blockIndex);
                   const focused = !activeSection || section?.id === activeSection.id;
                   const alpha = active ? 0.32 + energy[blockIndex] * 0.64 : 0.05 + energy[blockIndex] * 0.15;
@@ -300,13 +427,13 @@ function App() {
                         opacity: focused ? 1 : 0.28,
                       }}
                       type="button"
-                      onClick={() => toggleArrangement(instrument.id, blockIndex)}
-                      aria-label={`${instrument.label} bars ${getBlockLabel(blockIndex)}`}
+                      onClick={() => toggleArrangement(row.id, blockIndex)}
+                      aria-label={`${row.label} bars ${getBlockLabel(blockIndex)}`}
                     />
                   );
                 })}
               </div>
-            ))}
+            )})}
           </div>
         </section>
 
@@ -397,59 +524,59 @@ function App() {
                 <div className="panel-heading">
                   <Activity size={18} />
                   <div>
-                    <h2>{activeInstrumentModel.label} Editor</h2>
-                    <p>Sound, Tone und Groove als klickbare Bausteine. Empfehlungen reagieren auf Preset und Section.</p>
+                    <h2>{activeTrack.label} Editor</h2>
+                    <p>Sound, Tone und Groove zeigen nur zugewiesene Effect Words. Klick einen Bereich, dann wähle rechts per Doppelklick aus.</p>
                   </div>
                 </div>
 
                 <div className="instrument-picker">
-                  {INSTRUMENTS.map((instrument) => (
+                  {trackRows.map((row) => {
+                    const instrument = findInstrument(row.instrumentId);
+                    return (
                     <button
-                      className={activeInstrument === instrument.id ? "is-active" : ""}
-                      key={instrument.id}
+                      className={activeTrackId === row.id ? "is-active" : ""}
+                      key={row.id}
                       style={{ "--instrument": instrument.color }}
                       type="button"
-                      onClick={() => setActiveInstrument(instrument.id)}
+                      onClick={() => setActiveTrackId(row.id)}
+                      onDoubleClick={() => handleRowDoubleClick(row)}
                     >
-                      {instrument.label}
+                      {row.label}
                     </button>
-                  ))}
+                  )})}
                 </div>
 
                 <div className="quick-actions">
                   <button type="button" onClick={quickApplySection}>
-                    Add {activeInstrumentModel.label} to {activeSection.label}
+                    Add {activeTrack.label} to {activeSection.label}
                   </button>
                   <span>Focused section: {activeSection.label} / bars {activeSection.start}-{activeSection.end}</span>
                 </div>
 
-                {Object.entries(TAG_GROUPS[activeInstrument]).map(([group, tags]) => (
-                  <div className="tag-group" key={group}>
-                    <h3>{group}</h3>
-                    <div className="tag-cloud">
-                      {tags.map((tag) => (
-                        <TagChip
-                          key={tag}
-                          active={selections[activeInstrument][group].includes(tag)}
-                          recommended={recommendations.has(tag)}
-                          onClick={() => updateSelection(group, tag)}
-                        >
-                          {tag}
-                        </TagChip>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+                <div className="assignment-grid">
+                  {Object.keys(TAG_GROUPS[activeInstrument]).map((group) => (
+                    <AssignmentSection
+                      key={group}
+                      group={group}
+                      tags={selections[activeTrackId][group]}
+                      onFocus={() => {
+                        setActiveTagGroup(group);
+                        setRightPanelTab("effects");
+                      }}
+                      onRemove={(tag) => removeSelection(group, tag)}
+                    />
+                  ))}
+                </div>
 
                 <label className="notes-field">
                   Instrument notes
                   <textarea
-                    value={selections[activeInstrument].notes}
+                    value={selections[activeTrackId].notes}
                     onChange={(event) =>
                       setSelections((previous) => ({
                         ...previous,
-                        [activeInstrument]: {
-                          ...previous[activeInstrument],
+                        [activeTrackId]: {
+                          ...previous[activeTrackId],
                           notes: event.target.value,
                         },
                       }))
@@ -464,59 +591,92 @@ function App() {
           <aside className="prompt-panel">
             <div className="prompt-header">
               <div>
-                <span>Live Prompt</span>
-                <strong>Suno Custom Mode</strong>
+                <span>{rightPanelTab === "prompt" ? "Live Prompt" : "Elements"}</span>
+                <strong>{rightPanelTab === "prompt" ? "Suno Custom Mode" : `${activeTrack.label} / ${activeTagGroup}`}</strong>
+              </div>
+              <div className="right-tabs">
+                <button className={rightPanelTab === "prompt" ? "is-active" : ""} type="button" onClick={() => setRightPanelTab("prompt")}>
+                  Prompts
+                </button>
+                <button className={rightPanelTab === "effects" ? "is-active" : ""} type="button" onClick={() => setRightPanelTab("effects")}>
+                  Effect Words
+                </button>
               </div>
             </div>
-            {[
-              {
-                id: "style",
-                label: "Style Prompt",
-                helper: "Paste into Style of Music",
-                value: prompts.style,
-                counter: `${styleCharCount}/1000`,
-                status: styleCharCount >= 1000 ? "danger" : styleCharCount >= 900 ? "warning" : "ok",
-              },
-              {
-                id: "lyrics",
-                label: "Lyrics / Vocal Structure",
-                helper: "Paste into Lyrics",
-                value: prompts.lyrics,
-              },
-              {
-                id: "exclude",
-                label: "Exclude",
-                helper: "Paste into Advanced Options > Exclude",
-                value: prompts.exclude,
-              },
-              {
-                id: "blueprint",
-                label: "Blueprint",
-                helper: "Internal full detail reference",
-                value: prompts.blueprint,
-              },
-            ].map((panel) => (
-              <section className={`prompt-accordion ${openPromptPanels[panel.id] ? "is-open" : ""}`} key={panel.id}>
-                <div className="prompt-accordion-header">
-                  <button type="button" onClick={() => togglePromptPanel(panel.id)}>
-                    <strong>{panel.label}</strong>
-                    <span>{panel.helper}</span>
-                  </button>
-                  <div className="prompt-actions">
-                    {panel.counter && <em className={`char-count ${panel.status}`}>{panel.counter}</em>}
-                    <button type="button" onClick={() => copyPrompt(panel.id, panel.value)}>
-                      <Clipboard size={15} />
-                      {copied === panel.id ? "Copied" : "Copy"}
+            {rightPanelTab === "prompt" ? (
+              <>
+                {[
+                  {
+                    id: "style",
+                    label: "Style Prompt",
+                    helper: "Paste into Style of Music",
+                    value: prompts.style,
+                    counter: `${styleCharCount}/1000`,
+                    status: styleCharCount >= 1000 ? "danger" : styleCharCount >= 900 ? "warning" : "ok",
+                  },
+                  {
+                    id: "lyrics",
+                    label: "Lyrics / Vocal Structure",
+                    helper: "Paste into Lyrics",
+                    value: prompts.lyrics,
+                  },
+                  {
+                    id: "exclude",
+                    label: "Exclude",
+                    helper: "Paste into Advanced Options > Exclude",
+                    value: prompts.exclude,
+                  },
+                  {
+                    id: "blueprint",
+                    label: "Blueprint",
+                    helper: "Internal full detail reference",
+                    value: prompts.blueprint,
+                  },
+                ].map((panel) => (
+                  <section className={`prompt-accordion ${openPromptPanels[panel.id] ? "is-open" : ""}`} key={panel.id}>
+                    <div className="prompt-accordion-header">
+                      <button type="button" onClick={() => togglePromptPanel(panel.id)}>
+                        <strong>{panel.label}</strong>
+                        <span>{panel.helper}</span>
+                      </button>
+                      <div className="prompt-actions">
+                        {panel.counter && <em className={`char-count ${panel.status}`}>{panel.counter}</em>}
+                        <button type="button" onClick={() => copyPrompt(panel.id, panel.value)}>
+                          <Clipboard size={15} />
+                          {copied === panel.id ? "Copied" : "Copy"}
+                        </button>
+                      </div>
+                    </div>
+                    {openPromptPanels[panel.id] && <pre>{panel.value}</pre>}
+                  </section>
+                ))}
+                <label className="global-notes">
+                  Extra input
+                  <textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Add extra direction for the final prompt..." />
+                </label>
+              </>
+            ) : (
+              <div className="effect-browser">
+                <div className="effect-browser-toolbar">
+                  {Object.keys(TAG_GROUPS[activeInstrument]).map((group) => (
+                    <button
+                      className={activeTagGroup === group ? "is-active" : ""}
+                      key={group}
+                      type="button"
+                      onClick={() => setActiveTagGroup(group)}
+                    >
+                      {group}
                     </button>
-                  </div>
+                  ))}
                 </div>
-                {openPromptPanels[panel.id] && <pre>{panel.value}</pre>}
-              </section>
-            ))}
-            <label className="global-notes">
-              Extra input
-              <textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Add extra direction for the final prompt..." />
-            </label>
+                <EffectTable
+                  tags={TAG_GROUPS[activeInstrument][activeTagGroup]}
+                  selectedTags={selections[activeTrackId][activeTagGroup]}
+                  recommendations={recommendations}
+                  onAdd={(tag) => updateSelection(activeTagGroup, tag)}
+                />
+              </div>
+            )}
           </aside>
         </section>
       </section>

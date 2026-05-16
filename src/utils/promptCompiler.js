@@ -1,4 +1,4 @@
-import { DEFAULT_EXCLUDES, INSTRUMENTS, VOCAL_MODES, getBlockLabel } from "../data/musicModel.js";
+import { DEFAULT_EXCLUDES, INSTRUMENTS, VOCAL_MODES, findInstrument, getBlockLabel } from "../data/musicModel.js";
 
 function formatList(items) {
   return items.length ? items.join(", ") : "not specified";
@@ -14,9 +14,24 @@ function getActiveBlocks(blocks) {
     .filter(Boolean);
 }
 
-function instrumentLine(instrument, selections, arrangement) {
-  const activeBlocks = getActiveBlocks(arrangement[instrument.id] || []);
-  const selected = selections[instrument.id] || { sound: [], tone: [], groove: [], notes: "" };
+function rowLabel(row) {
+  const instrument = findInstrument(row.instrumentId) || row;
+  return row.label || instrument.label;
+}
+
+function rowsOrDefaults(trackRows) {
+  return trackRows?.length
+    ? trackRows
+    : INSTRUMENTS.map((instrument) => ({
+        id: instrument.id,
+        instrumentId: instrument.id,
+        label: instrument.label,
+      }));
+}
+
+function instrumentLine(row, selections, arrangement) {
+  const activeBlocks = getActiveBlocks(arrangement[row.id] || []);
+  const selected = selections[row.id] || { sound: [], tone: [], groove: [], notes: "" };
   const tags = [...selected.sound, ...selected.tone, ...selected.groove];
 
   if (!tags.length && !activeBlocks.length && !selected.notes) {
@@ -24,7 +39,7 @@ function instrumentLine(instrument, selections, arrangement) {
   }
 
   const parts = [
-    `${instrument.label}: ${formatList(tags)}`,
+    `${rowLabel(row)}: ${formatList(tags)}`,
     activeBlocks.length ? `active in bars ${activeBlocks.join(", ")}` : "activity not mapped",
   ];
 
@@ -35,18 +50,25 @@ function instrumentLine(instrument, selections, arrangement) {
   return parts.join("; ");
 }
 
-function selectedTagsForInstrument(selections, instrumentId) {
-  const selected = selections[instrumentId] || { sound: [], tone: [], groove: [] };
+function selectedTagsForRow(selections, rowId) {
+  const selected = selections[rowId] || { sound: [], tone: [], groove: [] };
   return [...selected.sound, ...selected.tone, ...selected.groove];
 }
 
-function selectedTagsByPriority(selections) {
-  const priority = ["kick", "bass", "sub", "hats", "perc", "clap", "chords", "synth", "pads", "vocals", "fx"];
-  return unique(priority.flatMap((instrumentId) => selectedTagsForInstrument(selections, instrumentId)));
+function selectedTagsByPriority(selections, trackRows) {
+  const priority = ["kick", "bass", "sub", "hats", "perc", "clap", "chords", "synth", "pads", "vocals", "fx", "transitions"];
+  const rows = rowsOrDefaults(trackRows);
+  return unique(
+    priority.flatMap((instrumentId) =>
+      rows.filter((row) => row.instrumentId === instrumentId).flatMap((row) => selectedTagsForRow(selections, row.id))
+    )
+  );
 }
 
-function activeInstrumentLabels(arrangement) {
-  return INSTRUMENTS.filter((instrument) => arrangement[instrument.id]?.some(Boolean)).map((instrument) => instrument.label.toLowerCase());
+function activeInstrumentLabels(arrangement, trackRows) {
+  return rowsOrDefaults(trackRows)
+    .filter((row) => arrangement[row.id]?.some(Boolean))
+    .map((row) => rowLabel(row).toLowerCase());
 }
 
 function vocalModeFor(meta) {
@@ -82,28 +104,30 @@ function vocalCueForSection(section, meta) {
   return "[Instrumental]";
 }
 
-function sectionActiveInstruments(section, arrangement) {
+function sectionActiveInstruments(section, arrangement, trackRows) {
   const startBlock = Math.floor((section.start - 1) / 4);
   const endBlock = Math.floor((section.end - 1) / 4);
-  return INSTRUMENTS.filter((instrument) => {
-    const blocks = arrangement[instrument.id] || [];
+  return rowsOrDefaults(trackRows).filter((row) => {
+    const blocks = arrangement[row.id] || [];
     return blocks.slice(startBlock, endBlock + 1).some(Boolean);
-  }).map((instrument) => instrument.label.toLowerCase());
+  }).map((row) => rowLabel(row).toLowerCase());
 }
 
-function sectionTagHints(section, selections, arrangement) {
-  const active = sectionActiveInstruments(section, arrangement);
-  const tags = unique(active.flatMap((instrumentLabel) => {
-    const instrument = INSTRUMENTS.find((item) => item.label.toLowerCase() === instrumentLabel);
-    return instrument ? selectedTagsForInstrument(selections, instrument.id) : [];
+function sectionTagHints(section, selections, arrangement, trackRows) {
+  const startBlock = Math.floor((section.start - 1) / 4);
+  const endBlock = Math.floor((section.end - 1) / 4);
+  const tags = unique(rowsOrDefaults(trackRows).flatMap((row) => {
+    const blocks = arrangement[row.id] || [];
+    const active = blocks.slice(startBlock, endBlock + 1).some(Boolean);
+    return active ? selectedTagsForRow(selections, row.id) : [];
   }));
   return tags.slice(0, 5);
 }
 
-export function compileSunoStylePrompt({ meta, selections, arrangement }) {
+export function compileSunoStylePrompt({ meta, selections, arrangement, trackRows }) {
   const vocalMode = vocalModeFor(meta);
-  const selectedTags = selectedTagsByPriority(selections);
-  const activeLabels = activeInstrumentLabels(arrangement);
+  const selectedTags = selectedTagsByPriority(selections, trackRows);
+  const activeLabels = activeInstrumentLabels(arrangement, trackRows);
   const base = [
     meta.style,
     `${meta.bpm} BPM`,
@@ -127,7 +151,7 @@ export function compileSunoStylePrompt({ meta, selections, arrangement }) {
   return compactJoin(base, 940);
 }
 
-export function compileSunoLyricsPrompt({ meta, structure, selections, arrangement, notes }) {
+export function compileSunoLyricsPrompt({ meta, structure, selections, arrangement, notes, trackRows }) {
   const lines = [];
   const vocalMode = vocalModeFor(meta);
 
@@ -136,8 +160,8 @@ export function compileSunoLyricsPrompt({ meta, structure, selections, arrangeme
   lines.push("");
 
   structure.forEach((section) => {
-    const active = sectionActiveInstruments(section, arrangement);
-    const hints = sectionTagHints(section, selections, arrangement);
+    const active = sectionActiveInstruments(section, arrangement, trackRows);
+    const hints = sectionTagHints(section, selections, arrangement, trackRows);
     lines.push(sectionTag(section));
     lines.push(vocalCueForSection(section, meta));
     lines.push(`Bars ${section.start}-${section.end}: ${section.intent}`);
@@ -161,7 +185,7 @@ export function compileSunoExcludePrompt({ meta }) {
   return unique([...DEFAULT_EXCLUDES, ...vocalMode.excludeCue.split(",").map((item) => item.trim())]).join(", ");
 }
 
-export function compileBlueprintPrompt({ meta, structure, selections, arrangement, notes }) {
+export function compileBlueprintPrompt({ meta, structure, selections, arrangement, notes, trackRows }) {
   const lines = [];
 
   lines.push("[TRACK IDENTITY]");
@@ -176,7 +200,7 @@ export function compileBlueprintPrompt({ meta, structure, selections, arrangemen
   lines.push("");
 
   lines.push("[INSTRUMENT LAYERS]");
-  INSTRUMENTS.map((instrument) => instrumentLine(instrument, selections, arrangement))
+  rowsOrDefaults(trackRows).map((row) => instrumentLine(row, selections, arrangement))
     .filter(Boolean)
     .forEach((line) => lines.push(line));
   lines.push("");
