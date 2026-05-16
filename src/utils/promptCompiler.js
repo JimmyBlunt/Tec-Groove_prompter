@@ -102,6 +102,19 @@ function compactJoin(phrases, maxLength = 940) {
   return kept.join(", ");
 }
 
+function bracketLine(label, value) {
+  if (!value) return null;
+  return `[${label}: ${String(value).replace(/[\[\]]/g, "").trim()}]`;
+}
+
+function noteDirectionLines(notes) {
+  return notes
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => bracketLine("Direction", line));
+}
+
 function sectionTag(section) {
   if (section.role === "intro") return "[Intro]";
   if (section.role === "build") return "[Build]";
@@ -111,11 +124,36 @@ function sectionTag(section) {
   return "[Interlude]";
 }
 
+function globalVocalDirective(meta, vocalMode) {
+  if (meta.vocalMode === "no-vocals") {
+    return ["[Instrumental]", "[No vocals]", "[Arrangement map]"];
+  }
+  if (meta.vocalMode === "vocoder-textures") {
+    return [
+      "[Instrumental]",
+      "[Vocal FX: robotic vocoder texture, chopped voice rhythm only]",
+      "[No lead vocal]",
+    ];
+  }
+  if (meta.vocalMode === "spoken-fragments") {
+    return [
+      "[Instrumental]",
+      "[Vocal FX: short processed spoken fragments, low in the mix]",
+      "[No sung verse]",
+    ];
+  }
+  return [
+    "[Instrumental]",
+    "[Vocal FX: short chopped voice texture, rhythm and transition material only]",
+    "[No lead vocal]",
+  ];
+}
+
 function vocalCueForSection(section, meta) {
   if (meta.vocalMode === "no-vocals") return "[Instrumental]";
-  if (section.role === "break") return "[Vocal Chop] [Breathy]";
-  if (section.role === "build") return meta.vocalMode === "vocoder-textures" ? "[Vocoder] [Build]" : "[Vocal Stutter]";
-  if (section.role === "drop") return "[Instrumental]";
+  if (section.role === "break") return meta.vocalMode === "vocoder-textures" ? "[Vocoder Atmosphere]" : "[Ghost Vocal Chop]";
+  if (section.role === "build") return meta.vocalMode === "vocoder-textures" ? "[Vocoder Rhythm]" : "[Vocal Stutter]";
+  if (section.role === "drop") return meta.vocalMode === "vocoder-textures" ? "[Robotic Vocal Texture]" : "[Instrumental]";
   if (section.role === "outro") return "[Instrumental]";
   return "[Instrumental]";
 }
@@ -164,11 +202,8 @@ export function compileSunoStylePrompt({ meta, selections, arrangement, trackRow
     vocalMode.styleCue,
     ...selectedTags.slice(0, selectedLimit),
     activeLabels.length ? `${activeLabels.join(", ")} arrangement` : "",
-    "DJ-friendly structure",
-    "additive groove build",
-    "central breakdown",
-    "restrained drop",
-    "subtractive outro",
+    "DJ-friendly extended club arrangement",
+    "phrase-based 8-bar and 16-bar evolution",
     "warm analog mix",
     "deep controlled low-end",
     "spacious stereo",
@@ -183,8 +218,8 @@ export function compileSunoLyricsPrompt({ meta, structure, selections, arrangeme
   const density = densityConfig(promptDensity);
   const hintLimit = density.id === "compact" ? 3 : density.id === "balanced" ? 5 : 8;
 
-  lines.push(`[Global: ${vocalMode.label}]`);
-  lines.push("Use voice as texture, rhythm, atmosphere, and transition material rather than a traditional lead vocal.");
+  globalVocalDirective(meta, vocalMode).forEach((line) => lines.push(line));
+  lines.push(bracketLine("Style context", `${meta.style}, ${meta.bpm} BPM, ${meta.key}, ${meta.groove}`));
   lines.push("");
 
   structure.forEach((section) => {
@@ -192,17 +227,18 @@ export function compileSunoLyricsPrompt({ meta, structure, selections, arrangeme
     const hints = sectionTagHints(section, selections, arrangement, trackRows, blockOverrides).slice(0, hintLimit);
     lines.push(sectionTag(section));
     lines.push(vocalCueForSection(section, meta));
-    lines.push(`Bars ${section.start}-${section.end}: ${section.intent}`);
-    lines.push(`Active palette: ${active.length ? active.join(", ") : "sparse texture"}.`);
+    lines.push(bracketLine("Bars", `${section.start}-${section.end}`));
+    lines.push(bracketLine("Arrangement", section.intent));
+    lines.push(bracketLine("Active palette", active.length ? active.join(", ") : "sparse texture"));
     if (hints.length) {
-      lines.push(`Sound cues: ${hints.join(", ")}.`);
+      lines.push(bracketLine("Sound cues", hints.join(", ")));
     }
     lines.push("");
   });
 
   if (notes.trim()) {
     lines.push("[Additional Direction]");
-    lines.push(notes.trim());
+    noteDirectionLines(notes).forEach((line) => lines.push(line));
   }
 
   return lines.join("\n").trim();

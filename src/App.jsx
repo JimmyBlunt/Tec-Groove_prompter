@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import {
   Activity,
   AudioLines,
@@ -240,6 +240,7 @@ function App() {
   const [activeSetupField, setActiveSetupField] = useState("style");
   const [rightPanelTab, setRightPanelTab] = useState("prompt");
   const [selectedCells, setSelectedCells] = useState([]);
+  const selectionAnchorRef = useRef(null);
   const [blockOverrides, setBlockOverrides] = useState({});
   const [revisionCounter, setRevisionCounter] = useState(1);
   const [savedSnapshots, setSavedSnapshots] = useState(loadSavedSnapshots);
@@ -538,11 +539,34 @@ function App() {
     const nextCell = { rowId, blockIndex };
     setSelectedCells((previous) => {
       if (event.shiftKey) {
+        const anchor = selectionAnchorRef.current || previous[previous.length - 1] || nextCell;
+        const rowIds = trackRows.map((row) => row.id);
+        const startRow = rowIds.indexOf(anchor.rowId);
+        const endRow = rowIds.indexOf(rowId);
+        if (startRow === -1 || endRow === -1) {
+          selectionAnchorRef.current = nextCell;
+          return [nextCell];
+        }
+        const rowStart = Math.min(startRow, endRow);
+        const rowEnd = Math.max(startRow, endRow);
+        const blockStart = Math.min(anchor.blockIndex, blockIndex);
+        const blockEnd = Math.max(anchor.blockIndex, blockIndex);
+        const range = [];
+        for (let rowIndex = rowStart; rowIndex <= rowEnd; rowIndex += 1) {
+          for (let index = blockStart; index <= blockEnd; index += 1) {
+            range.push({ rowId: rowIds[rowIndex], blockIndex: index });
+          }
+        }
+        return range;
+      }
+      if (event.ctrlKey || event.metaKey) {
+        selectionAnchorRef.current = nextCell;
         const exists = previous.some((cell) => cell.rowId === rowId && cell.blockIndex === blockIndex);
         return exists
           ? previous.filter((cell) => !(cell.rowId === rowId && cell.blockIndex === blockIndex))
           : [...previous, nextCell];
       }
+      selectionAnchorRef.current = nextCell;
       return [nextCell];
     });
   };
@@ -1017,6 +1041,7 @@ function App() {
                     Add {activeTrack.label} to {activeSection.label}
                   </button>
                   <span>Focused section: {activeSection.label} / bars {activeSection.start}-{activeSection.end}</span>
+                  <span>Selection: click single, Ctrl toggles cells, Shift selects range.</span>
                   {isCellEditMode && (
                     <span className="selected-bars">
                       Selected bars:{" "}
@@ -1163,7 +1188,7 @@ function App() {
                   {
                     id: "lyrics",
                     label: "Lyrics / Vocal Structure",
-                    helper: "Paste into Lyrics",
+                    helper: "Paste into Lyrics as structure metatags",
                     value: prompts.lyrics,
                   },
                   {
