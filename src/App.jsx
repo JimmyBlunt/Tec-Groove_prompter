@@ -14,7 +14,9 @@ import {
 import {
   INSTRUMENTS,
   JOURNEY_BLUEPRINTS,
+  CHARACTERISTIC_OPTIONS,
   PROMPT_LANGUAGES,
+  PROMPT_DENSITIES,
   STRUCTURE_COLORS,
   TAG_GROUPS,
   TARGET_TOOLS,
@@ -152,6 +154,7 @@ function App() {
   const [trackRows, setTrackRows] = useState(createDefaultTrackRows);
   const [activeTrackId, setActiveTrackId] = useState("bass");
   const [activeTagGroup, setActiveTagGroup] = useState("sound");
+  const [activeSetupField, setActiveSetupField] = useState("style");
   const [rightPanelTab, setRightPanelTab] = useState("prompt");
   const [selectedCells, setSelectedCells] = useState([]);
   const [blockOverrides, setBlockOverrides] = useState({});
@@ -163,6 +166,7 @@ function App() {
     energy: "warm-up",
     length: 64,
   });
+  const [promptDensity, setPromptDensity] = useState("balanced");
   const [activeSectionId, setActiveSectionId] = useState("intro");
   const [copied, setCopied] = useState("");
   const [openPromptPanels, setOpenPromptPanels] = useState({
@@ -202,8 +206,8 @@ function App() {
   }, [arrangement, blockCount, trackRows]);
 
   const prompts = useMemo(
-    () => compilePromptBundle({ meta, structure, selections, arrangement, notes, trackRows, blockOverrides }),
-    [meta, structure, selections, arrangement, notes, trackRows, blockOverrides]
+    () => compilePromptBundle({ meta, structure, selections, arrangement, notes, trackRows, blockOverrides, promptDensity }),
+    [meta, structure, selections, arrangement, notes, trackRows, blockOverrides, promptDensity]
   );
   const styleCharCount = prompts.style.length;
 
@@ -536,6 +540,25 @@ function App() {
     window.setTimeout(() => setCopied(""), 1400);
   };
 
+  const optimizePromptDensity = () => {
+    if (styleCharCount >= 900) {
+      setPromptDensity("compact");
+      return;
+    }
+    setPromptDensity("balanced");
+  };
+
+  const applyCharacteristicOption = (field, value) => {
+    const label = tagLabel(value);
+    setMeta((previous) => {
+      if (field === "key") return { ...previous, key: label };
+      const current = previous[field] || "";
+      if (!current) return { ...previous, [field]: label };
+      if (current.toLowerCase().includes(label.toLowerCase())) return previous;
+      return { ...previous, [field]: `${current}, ${label}` };
+    });
+  };
+
   return (
     <main className="studio-shell">
       <aside className="sidebar">
@@ -704,7 +727,14 @@ function App() {
                 <div className="form-grid">
                   <label>
                     Style
-                    <input value={meta.style} onChange={(event) => setMeta({ ...meta, style: event.target.value })} />
+                    <input
+                      value={meta.style}
+                      onFocus={() => {
+                        setActiveSetupField("style");
+                        setRightPanelTab("characteristics");
+                      }}
+                      onChange={(event) => setMeta({ ...meta, style: event.target.value })}
+                    />
                   </label>
                   <label>
                     BPM
@@ -712,7 +742,14 @@ function App() {
                   </label>
                   <label>
                     Key
-                    <input value={meta.key} onChange={(event) => setMeta({ ...meta, key: event.target.value })} />
+                    <input
+                      value={meta.key}
+                      onFocus={() => {
+                        setActiveSetupField("key");
+                        setRightPanelTab("characteristics");
+                      }}
+                      onChange={(event) => setMeta({ ...meta, key: event.target.value })}
+                    />
                   </label>
                   <label>
                     Energy
@@ -720,11 +757,36 @@ function App() {
                   </label>
                   <label className="span-2">
                     Mood
-                    <input value={meta.mood} onChange={(event) => setMeta({ ...meta, mood: event.target.value })} />
+                    <input
+                      value={meta.mood}
+                      onFocus={() => {
+                        setActiveSetupField("mood");
+                        setRightPanelTab("characteristics");
+                      }}
+                      onChange={(event) => setMeta({ ...meta, mood: event.target.value })}
+                    />
                   </label>
                   <label className="span-2">
                     Groove Character
-                    <input value={meta.groove} onChange={(event) => setMeta({ ...meta, groove: event.target.value })} />
+                    <input
+                      value={meta.groove}
+                      onFocus={() => {
+                        setActiveSetupField("groove");
+                        setRightPanelTab("characteristics");
+                      }}
+                      onChange={(event) => setMeta({ ...meta, groove: event.target.value })}
+                    />
+                  </label>
+                  <label className="span-2">
+                    Sound Character
+                    <input
+                      value={meta.soundCharacter || ""}
+                      onFocus={() => {
+                        setActiveSetupField("soundCharacter");
+                        setRightPanelTab("characteristics");
+                      }}
+                      onChange={(event) => setMeta({ ...meta, soundCharacter: event.target.value })}
+                    />
                   </label>
                 </div>
 
@@ -940,8 +1002,14 @@ function App() {
           <aside className="prompt-panel">
             <div className="prompt-header">
               <div>
-                <span>{rightPanelTab === "prompt" ? "Live Prompt" : "Elements"}</span>
-                <strong>{rightPanelTab === "prompt" ? "Suno Custom Mode" : `${activeTrack.label} / ${activeTagGroup}`}</strong>
+                <span>{rightPanelTab === "prompt" ? "Live Prompt" : rightPanelTab === "effects" ? "Elements" : "Song Setup"}</span>
+                <strong>
+                  {rightPanelTab === "prompt"
+                    ? "Suno Custom Mode"
+                    : rightPanelTab === "effects"
+                      ? `${activeTrack.label} / ${activeTagGroup}`
+                      : activeSetupField}
+                </strong>
               </div>
               <div className="right-tabs">
                 <button className={rightPanelTab === "prompt" ? "is-active" : ""} type="button" onClick={() => setRightPanelTab("prompt")}>
@@ -950,10 +1018,19 @@ function App() {
                 <button className={rightPanelTab === "effects" ? "is-active" : ""} type="button" onClick={() => setRightPanelTab("effects")}>
                   Effect Words
                 </button>
+                <button className={rightPanelTab === "characteristics" ? "is-active" : ""} type="button" onClick={() => setRightPanelTab("characteristics")}>
+                  Setup Words
+                </button>
               </div>
             </div>
             {rightPanelTab === "prompt" ? (
               <>
+                <div className="prompt-density-bar">
+                  <ToggleGroup label="Prompt Density" value={promptDensity} options={PROMPT_DENSITIES} onChange={setPromptDensity} />
+                  <button className="primary-action" type="button" onClick={optimizePromptDensity}>
+                    Optimize Suno Output
+                  </button>
+                </div>
                 {[
                   {
                     id: "style",
@@ -1004,7 +1081,7 @@ function App() {
                   <textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Add extra direction for the final prompt..." />
                 </label>
               </>
-            ) : (
+            ) : rightPanelTab === "effects" ? (
               <div className="effect-browser">
                 <div className="effect-browser-toolbar">
                   {Object.keys(TAG_GROUPS[activeInstrument]).map((group) => (
@@ -1023,6 +1100,27 @@ function App() {
                   selectedTags={selectedTagsForGroup(activeTagGroup)}
                   recommendations={recommendations}
                   onAdd={(tag) => updateSelection(activeTagGroup, tag)}
+                />
+              </div>
+            ) : (
+              <div className="effect-browser">
+                <div className="effect-browser-toolbar">
+                  {Object.keys(CHARACTERISTIC_OPTIONS).map((field) => (
+                    <button
+                      className={activeSetupField === field ? "is-active" : ""}
+                      key={field}
+                      type="button"
+                      onClick={() => setActiveSetupField(field)}
+                    >
+                      {field === "soundCharacter" ? "sound" : field}
+                    </button>
+                  ))}
+                </div>
+                <EffectTable
+                  tags={CHARACTERISTIC_OPTIONS[activeSetupField]}
+                  selectedTags={[(meta[activeSetupField] || "")]}
+                  recommendations={new Set()}
+                  onAdd={(tag) => applyCharacteristicOption(activeSetupField, tag)}
                 />
               </div>
             )}

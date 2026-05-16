@@ -1,4 +1,4 @@
-import { DEFAULT_EXCLUDES, INSTRUMENTS, VOCAL_MODES, findInstrument, getBlockLabel } from "../data/musicModel.js";
+import { DEFAULT_EXCLUDES, INSTRUMENTS, PROMPT_DENSITIES, VOCAL_MODES, findInstrument, getBlockLabel } from "../data/musicModel.js";
 
 function formatList(items) {
   return items.length ? items.join(", ") : "not specified";
@@ -143,10 +143,16 @@ function sectionTagHints(section, selections, arrangement, trackRows, blockOverr
   return tags.slice(0, 5);
 }
 
-export function compileSunoStylePrompt({ meta, selections, arrangement, trackRows, blockOverrides }) {
+function densityConfig(promptDensity) {
+  return PROMPT_DENSITIES.find((density) => density.id === promptDensity) || PROMPT_DENSITIES[1];
+}
+
+export function compileSunoStylePrompt({ meta, selections, arrangement, trackRows, blockOverrides, promptDensity }) {
   const vocalMode = vocalModeFor(meta);
+  const density = densityConfig(promptDensity);
   const selectedTags = selectedTagsByPriority(selections, trackRows, blockOverrides);
   const activeLabels = activeInstrumentLabels(arrangement, trackRows);
+  const selectedLimit = density.id === "compact" ? 8 : density.id === "balanced" ? 14 : 22;
   const base = [
     meta.style,
     `${meta.bpm} BPM`,
@@ -154,8 +160,9 @@ export function compileSunoStylePrompt({ meta, selections, arrangement, trackRow
     `${meta.energy} energy`,
     meta.mood,
     meta.groove,
+    meta.soundCharacter,
     vocalMode.styleCue,
-    ...selectedTags.slice(0, 18),
+    ...selectedTags.slice(0, selectedLimit),
     activeLabels.length ? `${activeLabels.join(", ")} arrangement` : "",
     "DJ-friendly structure",
     "additive groove build",
@@ -167,12 +174,14 @@ export function compileSunoStylePrompt({ meta, selections, arrangement, trackRow
     "spacious stereo",
   ];
 
-  return compactJoin(base, 940);
+  return compactJoin(base, density.maxStyleChars);
 }
 
-export function compileSunoLyricsPrompt({ meta, structure, selections, arrangement, notes, trackRows, blockOverrides }) {
+export function compileSunoLyricsPrompt({ meta, structure, selections, arrangement, notes, trackRows, blockOverrides, promptDensity }) {
   const lines = [];
   const vocalMode = vocalModeFor(meta);
+  const density = densityConfig(promptDensity);
+  const hintLimit = density.id === "compact" ? 3 : density.id === "balanced" ? 5 : 8;
 
   lines.push(`[Global: ${vocalMode.label}]`);
   lines.push("Use voice as texture, rhythm, atmosphere, and transition material rather than a traditional lead vocal.");
@@ -180,7 +189,7 @@ export function compileSunoLyricsPrompt({ meta, structure, selections, arrangeme
 
   structure.forEach((section) => {
     const active = sectionActiveInstruments(section, arrangement, trackRows);
-    const hints = sectionTagHints(section, selections, arrangement, trackRows, blockOverrides);
+    const hints = sectionTagHints(section, selections, arrangement, trackRows, blockOverrides).slice(0, hintLimit);
     lines.push(sectionTag(section));
     lines.push(vocalCueForSection(section, meta));
     lines.push(`Bars ${section.start}-${section.end}: ${section.intent}`);
@@ -209,6 +218,7 @@ export function compileBlueprintPrompt({ meta, structure, selections, arrangemen
 
   lines.push("[TRACK IDENTITY]");
   lines.push(`${meta.style}, ${meta.bpm} BPM, ${meta.key}, ${meta.energy} energy, ${meta.mood}.`);
+  if (meta.soundCharacter) lines.push(`Sound character: ${meta.soundCharacter}.`);
   lines.push(`Groove character: ${meta.groove}. Target tool: ${meta.targetTool}.`);
   lines.push("");
 
