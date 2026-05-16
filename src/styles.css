@@ -568,14 +568,89 @@ textarea:focus {
   font-size: 14px;
 }
 
-.prompt-header button {
+.prompt-header button,
+.prompt-actions button {
   display: inline-flex;
   align-items: center;
   gap: 7px;
 }
 
-pre {
+.prompt-accordion {
+  border-bottom: 1px solid var(--line);
+}
+
+.prompt-accordion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+}
+
+.prompt-accordion-header > button {
   flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+}
+
+.prompt-accordion-header strong,
+.prompt-accordion-header span {
+  display: block;
+}
+
+.prompt-accordion-header strong {
+  font-size: 13px;
+}
+
+.prompt-accordion-header span {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.prompt-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.prompt-actions button {
+  min-height: 30px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.char-count {
+  color: var(--muted);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.char-count.ok {
+  color: var(--accent-2);
+}
+
+.char-count.warning {
+  color: #ffd166;
+}
+
+.char-count.danger {
+  color: var(--danger);
+}
+
+pre {
   min-height: 0;
   margin: 0;
   padding: 14px;
@@ -585,6 +660,12 @@ pre {
   font-size: 12px;
   line-height: 1.55;
   white-space: pre-wrap;
+}
+
+.prompt-accordion pre {
+  max-height: 280px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.16);
 }
 
 .global-notes {

@@ -8,6 +8,33 @@ export const PROMPT_LANGUAGES = [
   { id: "german", label: "Deutsch" },
 ];
 
+export const VOCAL_MODES = [
+  {
+    id: "instrumental-vocal-fx",
+    label: "Instrumental + Vocal FX",
+    styleCue: "instrumental club track, minimal vocal FX only",
+    excludeCue: "full lead vocal, pop hook, sung verse, rap verse, choir, aggressive vocal belting",
+  },
+  {
+    id: "no-vocals",
+    label: "No Vocals",
+    styleCue: "fully instrumental club track, no vocals",
+    excludeCue: "vocals, lead vocal, backing vocals, spoken word, rap verse, choir",
+  },
+  {
+    id: "spoken-fragments",
+    label: "Spoken Fragments",
+    styleCue: "short processed spoken fragments, no full lead vocal",
+    excludeCue: "sung verse, pop chorus, full lead vocal, rap verse",
+  },
+  {
+    id: "vocoder-textures",
+    label: "Vocoder Textures",
+    styleCue: "robotic vocoder textures, chopped voice as rhythmic sound design",
+    excludeCue: "natural lead vocal, pop hook, choir, belted vocal",
+  },
+];
+
 export const TRACK_PRESETS = [
   {
     id: "deep-hypnotic",
@@ -19,6 +46,7 @@ export const TRACK_PRESETS = [
     mood: "late-night, hypnotic, restrained",
     groove: "rolling micro-groove",
     length: 64,
+    vocalMode: "instrumental-vocal-fx",
   },
   {
     id: "dub-tech",
@@ -30,6 +58,7 @@ export const TRACK_PRESETS = [
     mood: "spacious, smoky, immersive",
     groove: "steady dub pulse",
     length: 64,
+    vocalMode: "instrumental-vocal-fx",
   },
   {
     id: "driving-club",
@@ -41,6 +70,7 @@ export const TRACK_PRESETS = [
     mood: "focused, club-ready, mechanical",
     groove: "tight machine funk",
     length: 96,
+    vocalMode: "instrumental-vocal-fx",
   },
   {
     id: "minimal-machine",
@@ -52,6 +82,7 @@ export const TRACK_PRESETS = [
     mood: "stripped-back, precise, synthetic",
     groove: "loop evolution",
     length: 64,
+    vocalMode: "instrumental-vocal-fx",
   },
 ];
 
@@ -141,6 +172,17 @@ export const STRUCTURE_TERMS = [
   "energy staircase",
   "tension rebuild",
   "DJ-friendly outro",
+];
+
+export const DEFAULT_EXCLUDES = [
+  "pop chorus",
+  "verse-chorus radio structure",
+  "EDM festival drop",
+  "big trance lead",
+  "bright supersaw",
+  "rock guitars",
+  "acoustic singer-songwriter",
+  "cheesy vocals",
 ];
 
 export const STRUCTURE_COLORS = {

@@ -19,6 +19,7 @@ import {
   TARGET_TOOLS,
   TRACK_LENGTHS,
   TRACK_PRESETS,
+  VOCAL_MODES,
   createDefaultArrangement,
   createDefaultStructure,
   createInitialSelections,
@@ -26,7 +27,7 @@ import {
   getRecommendations,
   getSectionForBlock,
 } from "./data/musicModel.js";
-import { compilePrompt } from "./utils/promptCompiler.js";
+import { compilePromptBundle } from "./utils/promptCompiler.js";
 
 const defaultPreset = TRACK_PRESETS[0];
 
@@ -82,12 +83,19 @@ function App() {
   const [activeCard, setActiveCard] = useState("setup");
   const [activeInstrument, setActiveInstrument] = useState("bass");
   const [activeSectionId, setActiveSectionId] = useState("intro");
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState("");
+  const [openPromptPanels, setOpenPromptPanels] = useState({
+    style: true,
+    lyrics: true,
+    exclude: false,
+    blueprint: false,
+  });
   const [notes, setNotes] = useState("");
   const [meta, setMeta] = useState({
     ...defaultPreset,
     targetTool: "Suno",
     promptLanguage: "english",
+    vocalMode: defaultPreset.vocalMode,
   });
   const [structure, setStructure] = useState(() => createDefaultStructure(defaultPreset.length));
   const [arrangement, setArrangement] = useState(() => createDefaultArrangement(defaultPreset.length));
@@ -110,10 +118,11 @@ function App() {
     });
   }, [arrangement, blockCount]);
 
-  const prompt = useMemo(
-    () => compilePrompt({ meta, structure, selections, arrangement, notes }),
+  const prompts = useMemo(
+    () => compilePromptBundle({ meta, structure, selections, arrangement, notes }),
     [meta, structure, selections, arrangement, notes]
   );
+  const styleCharCount = prompts.style.length;
 
   const applyPreset = (preset) => {
     setMeta((previous) => ({ ...previous, ...preset }));
@@ -162,10 +171,14 @@ function App() {
     }));
   };
 
-  const copyPrompt = async () => {
-    await navigator.clipboard.writeText(prompt);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1400);
+  const togglePromptPanel = (panel) => {
+    setOpenPromptPanels((previous) => ({ ...previous, [panel]: !previous[panel] }));
+  };
+
+  const copyPrompt = async (panel, value) => {
+    await navigator.clipboard.writeText(value);
+    setCopied(panel);
+    window.setTimeout(() => setCopied(""), 1400);
   };
 
   return (
@@ -339,6 +352,7 @@ function App() {
                 <ToggleGroup label="Track Length" value={meta.length} options={TRACK_LENGTHS} onChange={changeLength} />
                 <ToggleGroup label="Target Tool" value={meta.targetTool} options={TARGET_TOOLS} onChange={(targetTool) => setMeta({ ...meta, targetTool })} />
                 <ToggleGroup label="Prompt Language" value={meta.promptLanguage} options={PROMPT_LANGUAGES} onChange={(promptLanguage) => setMeta({ ...meta, promptLanguage })} />
+                <ToggleGroup label="Vocal Mode" value={meta.vocalMode} options={VOCAL_MODES} onChange={(vocalMode) => setMeta({ ...meta, vocalMode })} />
               </div>
             )}
 
@@ -451,14 +465,54 @@ function App() {
             <div className="prompt-header">
               <div>
                 <span>Live Prompt</span>
-                <strong>English / Suno-ready</strong>
+                <strong>Suno Custom Mode</strong>
               </div>
-              <button type="button" onClick={copyPrompt}>
-                <Clipboard size={16} />
-                {copied ? "Copied" : "Copy"}
-              </button>
             </div>
-            <pre>{prompt}</pre>
+            {[
+              {
+                id: "style",
+                label: "Style Prompt",
+                helper: "Paste into Style of Music",
+                value: prompts.style,
+                counter: `${styleCharCount}/1000`,
+                status: styleCharCount >= 1000 ? "danger" : styleCharCount >= 900 ? "warning" : "ok",
+              },
+              {
+                id: "lyrics",
+                label: "Lyrics / Vocal Structure",
+                helper: "Paste into Lyrics",
+                value: prompts.lyrics,
+              },
+              {
+                id: "exclude",
+                label: "Exclude",
+                helper: "Paste into Advanced Options > Exclude",
+                value: prompts.exclude,
+              },
+              {
+                id: "blueprint",
+                label: "Blueprint",
+                helper: "Internal full detail reference",
+                value: prompts.blueprint,
+              },
+            ].map((panel) => (
+              <section className={`prompt-accordion ${openPromptPanels[panel.id] ? "is-open" : ""}`} key={panel.id}>
+                <div className="prompt-accordion-header">
+                  <button type="button" onClick={() => togglePromptPanel(panel.id)}>
+                    <strong>{panel.label}</strong>
+                    <span>{panel.helper}</span>
+                  </button>
+                  <div className="prompt-actions">
+                    {panel.counter && <em className={`char-count ${panel.status}`}>{panel.counter}</em>}
+                    <button type="button" onClick={() => copyPrompt(panel.id, panel.value)}>
+                      <Clipboard size={15} />
+                      {copied === panel.id ? "Copied" : "Copy"}
+                    </button>
+                  </div>
+                </div>
+                {openPromptPanels[panel.id] && <pre>{panel.value}</pre>}
+              </section>
+            ))}
             <label className="global-notes">
               Extra input
               <textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Add extra direction for the final prompt..." />
